@@ -20,10 +20,7 @@ const About = () => {
             {/* Waxaad halkan geli kartaa sawirka dhabta ah ee kooxda SYADA */}
             <img src="image1.png" className="w-full h-full object-cover" alt="SYADA Community" />
           </div>
-          <div className="absolute bottom-6 left-6 bg-[#065F46] p-6 rounded-2xl text-white shadow-xl">
-            <h4 className="text-3xl font-bold">191+</h4>
-            <p className="text-[10px] font-bold uppercase tracking-widest opacity-80">Active Members</p>
-          </div>
+         
         </div>
       </section>
 
@@ -93,10 +90,11 @@ const About = () => {
       <section className="max-w-7xl mx-auto px-6 py-24 border-t border-gray-100 bg-gray-50/30">
         <div className="mb-16 text-center lg:text-left">
           <h2 className="text-4xl font-black text-gray-900">Executive Management</h2>
-          <p className="text-gray-400 mt-2">Hoggaanka fulinta ee SYADA[cite: 52].</p>
+          <p className="text-gray-400 mt-2">Hoggaanka fulinta ee SYADA.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-          <LeaderCard name="Abdullahi Abdinur Ali" role="Chair Executive" img="https://i.pravatar.cc/300?u=abdullahi" />
+          <LeaderCard name="Asma Cigaal Mohamud" role="Madaxa Maaliyada Ururka" img="asma.jpeg" />
+          <LeaderCard name="Jama Abdullahi Omar" role="Afhayeenka Ururka" img="jamac.jpeg.jpeg" />
           <LeaderCard name="Ayanle Abdiaziz Mohamud" role="Vice Chair Executive" img="https://i.pravatar.cc/300?u=ayanle" />
           <LeaderCard name="Saabirin Ali Mohamed" role="Head of Finance" img="https://i.pravatar.cc/300?u=saabirin" />
         </div>
@@ -116,12 +114,21 @@ const PillarCard = ({ icon, title, desc, isDark }) => (
 );
 
 const LeaderCard = ({ name, role, img }) => (
-  <div className="group bg-white p-6 rounded-[32px] border border-gray-100 shadow-sm hover:shadow-md transition-all">
-    <div className="relative overflow-hidden rounded-2xl mb-6 h-64 bg-gray-100">
-      <img src={img} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-500" alt={name} />
+  <div className="group bg-white p-8 rounded-[40px] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 text-center">
+    {/* Image Container */}
+    <div className="relative w-48 h-48 mx-auto mb-6 rounded-full overflow-hidden border-4 border-white shadow-md">
+      <img 
+        src={img} 
+        alt={name} 
+        className="w-full h-full object-cover" 
+      />
     </div>
-    <h4 className="font-bold text-xl text-gray-900">{name}</h4>
-    <p className="text-[10px] font-bold text-[#065F46] uppercase tracking-widest mt-1">{role}</p>
+    
+    {/* Info */}
+    <div className="space-y-1">
+      <h3 className="text-xl font-black text-gray-900 leading-tight">{name}</h3>
+      <p className="text-[11px] font-bold text-[#065F46] uppercase tracking-[0.15em]">{role}</p>
+    </div>
   </div>
 );
 

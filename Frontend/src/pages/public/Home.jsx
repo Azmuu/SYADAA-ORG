@@ -92,12 +92,7 @@ const Home = () => {
               alt="SYADA Team" 
             />
           </div>
-          <div className="absolute -bottom-6 -left-6 bg-white p-8 rounded-3xl shadow-xl border border-gray-50 max-w-[220px]">
-            <h4 className="text-4xl font-black text-[#065F46] mb-1">191+</h4>
-            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider leading-tight">
-              Xubnood oo firfircoon gobollada dalka oo dhan
-            </p>
-          </div>
+         
         </div>
       </section>
 
