@@ -1,215 +1,280 @@
-import React from 'react';
-import { 
-  Users, 
-  Rocket, 
-  Wallet, 
-  Search, 
-  Bell, 
-  Settings, 
-  UserPlus, 
-  RefreshCcw, 
-  FileEdit, 
+import React, { useEffect, useState } from "react";
+import {
+  Users,
+  Wallet,
+  Search,
+  Bell,
+  Settings,
+  UserPlus,
+  RefreshCcw,
+  FileEdit,
   CheckCircle,
   ShieldCheck,
-  ExternalLink
-} from 'lucide-react';
+  Loader2,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { dashboardApi } from "../../services/dashboardApi";
+
+const fmtMoney = (n) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(
+    Number(n) || 0
+  );
 
 const Dashboard = () => {
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("user");
+      if (raw) setUser(JSON.parse(raw));
+    } catch {
+      setUser(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setError("");
+      try {
+        const data = await dashboardApi.getSummary();
+        if (!cancelled) setSummary(data);
+      } catch (e) {
+        if (!cancelled) setError(e.message || "Could not load dashboard");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const displayName = user?.full_name || user?.email || "Admin";
+
   return (
-    <div className="p-8 bg-[#F9FAFB] min-h-screen font-sans text-gray-800">
-      
-      {/* Search and Profile Header */}
-      <div className="flex justify-between items-center mb-10">
-        <div className="relative w-1/2 max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search the archive..." 
-            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-100 rounded-lg text-sm shadow-sm focus:ring-2 focus:ring-green-600 outline-none transition"
+    <div className="min-h-screen bg-[#F9FAFB] p-8 font-sans text-gray-800">
+      <div className="mb-10 flex items-center justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 size-[18px] -translate-y-1/2 text-gray-400" />
+          <input
+            type="text"
+            placeholder="Search the archive…"
+            className="w-full rounded-lg border border-gray-100 bg-white py-2 pl-10 pr-4 text-sm shadow-sm outline-none transition focus:ring-2 focus:ring-brand"
           />
         </div>
         <div className="flex items-center gap-6">
-          <button className="text-gray-400 hover:text-gray-600 relative">
+          <button type="button" className="relative text-gray-400 hover:text-gray-600">
             <Bell size={20} />
-            <span className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full border-2 border-white"></span>
+            <span className="absolute -right-1 -top-1 size-2 rounded-full border-2 border-white bg-green-500" />
           </button>
-          <button className="text-gray-400 hover:text-gray-600">
+          <button type="button" className="text-gray-400 hover:text-gray-600">
             <Settings size={20} />
           </button>
-          <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
+          <div className="flex items-center gap-3 border-l border-gray-200 pl-4">
             <div className="text-right">
-              <p className="text-sm font-bold leading-none">Admin User</p>
-              <p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Chief Archivist</p>
+              <p className="text-sm font-bold leading-none">{displayName}</p>
+              <p className="mt-1 text-[10px] font-bold uppercase text-gray-400">{user?.role || "admin"}</p>
             </div>
-            <img 
-              src="https://ui-avatars.com/api/?name=Admin+User&background=065F46&color=fff" 
-              className="w-9 h-9 rounded-full border border-gray-200" 
-              alt="Profile"
+            <img
+              src={`https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=0d7a52&color=fff`}
+              className="size-9 rounded-full border border-gray-200"
+              alt=""
             />
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        
-        {/* Left Content (3 Columns) */}
-        <div className="lg:col-span-3 space-y-8">
-          
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
+        <div className="space-y-8 lg:col-span-3">
           <div>
             <h1 className="text-3xl font-black text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 text-sm mt-1">Welcome back. Here is the latest state of the SYADA ecosystem.</p>
+            <p className="mt-1 text-sm text-gray-500">Live counts from your MongoDB-backed API.</p>
           </div>
 
-          {/* Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <StatCard 
-              icon={<Users size={20} className="text-green-600"/>} 
-              label="Total Members" 
-              value="2,482" 
-              trend="+12.5%" 
-              trendUp={true}
-            />
-            <StatCard 
-              icon={<Rocket size={20} className="text-green-700"/>} 
-              label="Active Projects" 
-              value="34" 
-              trend="Stable" 
+          {error && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              {error}
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            <StatCard
+              icon={<Users size={20} className="text-green-600" />}
+              label="Total members"
+              value={loading ? "…" : String(summary?.memberCount ?? 0)}
+              trend={summary?.pendingMembers ? `${summary.pendingMembers} pending` : "—"}
               trendUp={null}
             />
-            <StatCard 
-              icon={<Wallet size={20} className="text-green-800"/>} 
-              label="Available Funds" 
-              value="$142,800" 
-              trend="+4.2%" 
-              trendUp={true}
+            <StatCard
+              icon={<FileEdit size={20} className="text-orange-600" />}
+              label="Reports on file"
+              value={loading ? "…" : String(summary?.reportCount ?? 0)}
+              trend="From /api/reports"
+              trendUp={null}
+            />
+            <StatCard
+              icon={<Wallet size={20} className="text-green-800" />}
+              label="Net balance (finance)"
+              value={loading ? "…" : fmtMoney(summary?.balance ?? 0)}
+              trend={loading ? "" : `In ${fmtMoney(summary?.income || 0)} · Out ${fmtMoney(summary?.expense || 0)}`}
+              trendUp={summary?.balance >= 0 ? true : false}
             />
           </div>
 
-          {/* Membership Growth Chart Area */}
-          <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex justify-between items-center mb-10">
+          <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold text-gray-900">Membership Growth</h3>
-                <p className="text-xs text-gray-400 mt-1">Visual tracking of new archive enrollments</p>
-              </div>
-              <div className="flex bg-gray-50 p-1 rounded-lg">
-                <button className="px-4 py-1.5 text-[10px] font-bold text-gray-400">6 MONTHS</button>
-                <button className="px-4 py-1.5 text-[10px] font-bold bg-[#065F46] text-white rounded-md shadow-sm">1 YEAR</button>
+                <h3 className="font-bold text-gray-900">Quick actions</h3>
+                <p className="mt-1 text-xs text-gray-400">All data requires a valid login session (JWT).</p>
               </div>
             </div>
-            
-            {/* Chart Bars */}
-            <div className="h-64 flex items-end justify-between gap-4 px-2">
-              {[
-                { m: 'JAN', h: '35%', opacity: 'bg-green-50' },
-                { m: 'FEB', h: '45%', opacity: 'bg-green-100' },
-                { m: 'MAR', h: '40%', opacity: 'bg-green-200' },
-                { m: 'APR', h: '55%', opacity: 'bg-green-300' },
-                { m: 'MAY', h: '65%', opacity: 'bg-green-400' },
-                { m: 'JUN', h: '60%', opacity: 'bg-green-500' },
-                { m: 'JUL', h: '85%', opacity: 'bg-green-800' },
-              ].map((bar, i) => (
-                <div key={i} className="flex-1 flex flex-col items-center gap-4">
-                  <div className={`w-full rounded-t-lg transition-all duration-500 ${bar.opacity}`} style={{ height: bar.h }}></div>
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{bar.m}</span>
-                </div>
-              ))}
+            <div className="flex flex-wrap gap-3">
+              <Link
+                to="/admin/members/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-dark"
+              >
+                <UserPlus size={18} />
+                Register member
+              </Link>
+              <Link
+                to="/admin/members"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                <Users size={18} />
+                Member directory
+              </Link>
+              <Link
+                to="/admin/finance"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                <Wallet size={18} />
+                Finance
+              </Link>
+              <Link
+                to="/admin/reports"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                <FileEdit size={18} />
+                Reports
+              </Link>
             </div>
           </div>
 
-          {/* Bottom Two Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-[#065F46] p-8 rounded-2xl text-white relative overflow-hidden group">
-               <h3 className="text-2xl font-bold mb-3">Expand the Network</h3>
-               <p className="text-sm opacity-80 mb-8 max-w-[200px] leading-relaxed">
-                 Strategic growth phase 2 is now active. Review proposals for the 2024 expansion.
-               </p>
-               <button className="bg-white text-[#065F46] px-6 py-2.5 rounded-lg font-bold text-sm hover:bg-gray-100 transition shadow-lg">
-                 Open Proposals
-               </button>
-               <div className="absolute right-[-20px] bottom-[-20px] opacity-10 group-hover:scale-110 transition-transform">
-                  <Users size={160} />
-               </div>
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div className="group relative overflow-hidden rounded-2xl bg-brand p-8 text-white">
+              <h3 className="mb-3 text-2xl font-bold">Expand the network</h3>
+              <p className="mb-8 max-w-[220px] text-sm leading-relaxed opacity-80">
+                Add members with full profiles, optional finance fields, and photos.
+              </p>
+              <Link
+                to="/admin/members/new"
+                className="inline-block rounded-lg bg-white px-6 py-2.5 text-sm font-bold text-brand shadow-lg hover:bg-gray-100"
+              >
+                New member
+              </Link>
+              <Users className="absolute -bottom-5 -right-5 size-40 opacity-10 transition-transform group-hover:scale-110" />
             </div>
 
-            <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm relative">
-               <div className="flex justify-between items-start mb-6">
-                  <span className="bg-green-50 text-green-700 text-[10px] font-bold px-3 py-1 rounded-full uppercase tracking-tighter">Security</span>
-                  <span className="text-[10px] text-gray-400 font-bold">12H AGO</span>
-               </div>
-               <h3 className="text-xl font-bold text-gray-900 mb-2">System Integrity Report</h3>
-               <p className="text-sm text-gray-500 mb-8 leading-relaxed">
-                 All database nodes are operational and encrypted. No anomalies detected.
-               </p>
-               <div className="flex items-center gap-2">
-                  <div className="flex -space-x-2">
-                    <img src="https://i.pravatar.cc/150?u=1" className="w-8 h-8 rounded-full border-2 border-white shadow-sm" alt="t1" />
-                    <img src="https://i.pravatar.cc/150?u=2" className="w-8 h-8 rounded-full border-2 border-white shadow-sm" alt="t2" />
-                  </div>
-                  <span className="text-xs text-gray-400 font-medium ml-2">2 technicians online</span>
-               </div>
+            <div className="relative rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
+              <div className="mb-6 flex items-start justify-between">
+                <span className="rounded-full bg-green-50 px-3 py-1 text-[10px] font-bold uppercase tracking-tighter text-green-700">
+                  API
+                </span>
+                <span className="text-[10px] font-bold text-gray-400">LIVE</span>
+              </div>
+              <h3 className="mb-2 text-xl font-bold text-gray-900">Backend connected</h3>
+              <p className="mb-6 text-sm leading-relaxed text-gray-500">
+                Dashboard summary is loaded from <code className="rounded bg-gray-100 px-1">GET /api/dashboard/summary</code>.
+              </p>
+              {loading && (
+                <p className="flex items-center gap-2 text-xs text-gray-400">
+                  <Loader2 className="size-4 animate-spin" /> Refreshing…
+                </p>
+              )}
             </div>
           </div>
-
         </div>
 
-        {/* Right Sidebar (1 Column) */}
         <div className="space-y-6">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="font-bold text-gray-900">Recent Activity</h3>
-              <button className="text-[10px] font-bold text-green-700 uppercase tracking-tighter">View All</button>
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-8 flex items-center justify-between">
+              <h3 className="font-bold text-gray-900">At a glance</h3>
             </div>
-            
-            <div className="space-y-8">
-              <ActivityRow icon={<UserPlus size={16}/>} color="bg-green-50 text-green-600" title="New Member Approved" sub="Sarah Jenkins has joined the Regional Directory." time="2 MINUTES AGO" />
-              <ActivityRow icon={<RefreshCcw size={16}/>} color="bg-yellow-50 text-yellow-600" title="Budget Reallocated" sub="$4,200 moved to 'Community Outreach' project." time="1 HOUR AGO" />
-              <ActivityRow icon={<FileEdit size={16}/>} color="bg-blue-50 text-blue-600" title="Charter Updated" sub="Section 4.2 of the archive guidelines was modified." time="5 HOURS AGO" />
-              <ActivityRow icon={<CheckCircle size={16}/>} color="bg-green-50 text-green-600" title="Project Completed" sub="'Archive Digitalization' hit 100% completion." time="YESTERDAY" />
+            <div className="space-y-6">
+              <ActivityRow
+                icon={<UserPlus size={16} />}
+                color="bg-green-50 text-green-600"
+                title="Members"
+                sub={`${summary?.memberCount ?? "—"} total · ${summary?.pendingMembers ?? "—"} pending review`}
+                time="LIVE DATA"
+              />
+              <ActivityRow
+                icon={<RefreshCcw size={16} />}
+                color="bg-yellow-50 text-yellow-600"
+                title="Finance"
+                sub={loading ? "Loading…" : `Balance ${fmtMoney(summary?.balance ?? 0)}`}
+                time="LIVE DATA"
+              />
+              <ActivityRow
+                icon={<CheckCircle size={16} />}
+                color="bg-blue-50 text-blue-600"
+                title="Reports"
+                sub={`${summary?.reportCount ?? "—"} documents in archive`}
+                time="LIVE DATA"
+              />
             </div>
 
-            {/* Verification Box */}
-            <div className="mt-12 bg-gray-50 border border-gray-100 rounded-xl p-6 text-center">
-               <div className="bg-gray-200 w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ShieldCheck className="text-gray-500" size={20}/>
-               </div>
-               <h4 className="text-sm font-bold text-gray-900">Pending Verifications</h4>
-               <p className="text-[11px] text-gray-500 mt-2 mb-6">There are 12 new members waiting for archival approval.</p>
-               <button className="w-full bg-white border border-gray-200 py-2.5 rounded-lg text-xs font-bold hover:bg-gray-50 transition shadow-sm">
-                 Start Approval Flow
-               </button>
+            <div className="mt-10 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center">
+              <div className="mx-auto mb-4 flex size-10 items-center justify-center rounded-full bg-gray-200">
+                <ShieldCheck className="text-gray-500" size={20} />
+              </div>
+              <h4 className="text-sm font-bold text-gray-900">Pending members</h4>
+              <p className="mb-6 mt-2 text-[11px] text-gray-500">
+                {summary?.pendingMembers ?? 0} member(s) with status &quot;pending&quot; in the directory.
+              </p>
+              <Link
+                to="/admin/members"
+                className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 text-xs font-bold shadow-sm hover:bg-gray-50"
+              >
+                Open directory
+              </Link>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   );
 };
 
-// Helper Components
 const StatCard = ({ icon, label, value, trend, trendUp }) => (
-  <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-    <div className="flex justify-between items-start mb-4">
-      <div className="p-2 bg-gray-50 rounded-lg">{icon}</div>
-      <div className={`flex items-center text-[10px] font-bold ${trendUp === true ? 'text-green-600' : trendUp === false ? 'text-red-500' : 'text-gray-400'}`}>
-        {trend} {trendUp !== null && <span className="ml-1">📈</span>}
+  <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+    <div className="mb-4 flex items-start justify-between">
+      <div className="rounded-lg bg-gray-50 p-2">{icon}</div>
+      <div
+        className={`flex items-center text-[10px] font-bold ${
+          trendUp === true ? "text-green-600" : trendUp === false ? "text-red-500" : "text-gray-400"
+        }`}
+      >
+        {trend}
       </div>
     </div>
-    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{label}</p>
-    <h4 className="text-2xl font-black text-gray-900 mt-1">{value}</h4>
+    <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400">{label}</p>
+    <h4 className="mt-1 text-2xl font-black text-gray-900">{value}</h4>
   </div>
 );
 
 const ActivityRow = ({ icon, color, title, sub, time }) => (
   <div className="flex gap-4">
-    <div className={`${color} w-9 h-9 shrink-0 rounded-lg flex items-center justify-center`}>
-      {icon}
-    </div>
+    <div className={`${color} flex size-9 shrink-0 items-center justify-center rounded-lg`}>{icon}</div>
     <div className="space-y-1">
       <h4 className="text-xs font-bold text-gray-900">{title}</h4>
-      <p className="text-[11px] text-gray-500 leading-snug">{sub}</p>
-      <p className="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">{time}</p>
+      <p className="text-[11px] leading-snug text-gray-500">{sub}</p>
+      <p className="text-[9px] font-bold uppercase tracking-tighter text-gray-300">{time}</p>
     </div>
   </div>
 );

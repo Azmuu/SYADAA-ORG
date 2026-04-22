@@ -1,33 +1,28 @@
-import axios from 'axios';
+/**
+ * Legacy-style API helpers (fetch). Prefer importing from `lib/apiClient.js` + specific service modules.
+ * Base URL matches `membersApi`, `dashboardApi`, etc.
+ */
+import { apiRequest, getApiBase } from "../lib/apiClient.js";
 
-// Bedel URL-kan marka aad leedahay Backend dhab ah
-const API_URL = 'https://api.syada.org/v1';
-
-const api = axios.create({
-  baseURL: API_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-// Waxay si toos ah ugu daraysaa Token-ka haddii uu jiro (Authorization)
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
+export { getApiBase };
 
 export const memberService = {
-  getAll: () => api.get('/members'),
-  getById: (id) => api.get(`/members/${id}`),
-  create: (data) => api.post('/members', data),
+  getAll: () => apiRequest("/members"),
+  getById: (id) => apiRequest(`/members/${id}`),
+  create: (data) => apiRequest("/members", { method: "POST", body: JSON.stringify(data) }),
+  update: (id, data) => apiRequest(`/members/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  remove: (id) => apiRequest(`/members/${id}`, { method: "DELETE" }),
 };
 
 export const financeService = {
-  getOverview: () => api.get('/finance/overview'),
-  getTransactions: () => api.get('/finance/transactions'),
+  getOverview: () => apiRequest("/finance/overview"),
+  getTransactions: (limit = 50) => apiRequest(`/finance/transactions?limit=${limit}`),
+};
+
+/** @deprecated use apiRequest — kept for compatibility */
+const api = {
+  get: (path) => apiRequest(path),
+  post: (path, body) => apiRequest(path, { method: "POST", body: JSON.stringify(body) }),
 };
 
 export default api;

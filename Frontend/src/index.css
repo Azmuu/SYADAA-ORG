@@ -1,4 +1,21 @@
-/* @tailwind base;
-@tailwind components;
-@tailwind utilities; */
 @import "tailwindcss";
+
+/* SYADA emblem: green band / wreath, navy stars, gold sun — use sitewide */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --color-brand: #0d7a52;
+  --color-brand-dark: #095c3e;
+  --color-brand-darker: #06442c;
+  --color-brand-soft: #e8f5ef;
+  --color-brand-muted: #f0faf4;
+  --color-logo-navy: #1a3d6e;
+  --color-logo-navy-dark: #142e52;
+  --color-logo-gold: #e8b319;
+  --color-logo-gold-soft: #fdf6e3;
+}
+
+@layer base {
+  html {
+    font-family: var(--font-sans);
+  }
+}

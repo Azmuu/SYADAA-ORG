@@ -3,12 +3,26 @@ import { Outlet, Navigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import Navbar from '../components/Navbar';
 
+const STAFF_ROLES = new Set(['super_admin', 'manager', 'editor']);
+
 const AdminLayout = () => {
   // Hubi haddii qofku Login yahay
   const isAuthenticated = localStorage.getItem('token');
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
+  }
+
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || 'null');
+    if (user?.role === 'member') {
+      return <Navigate to="/portal" replace />;
+    }
+    if (user?.role && !STAFF_ROLES.has(user.role)) {
+      return <Navigate to="/login" replace />;
+    }
+  } catch {
+    /* ignore */
   }
 
   return (

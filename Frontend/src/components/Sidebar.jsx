@@ -1,21 +1,23 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Users, Activity, Wallet, FolderOpen, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, UserPlus, Activity, Wallet, FolderOpen, LogOut } from 'lucide-react';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
   };
 
   const navItems = [
     { name: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard size={18} /> },
-    { name: 'Member Directory', path: '/admin/members', icon: <Users size={18} /> },
+    { name: 'Member directory', path: '/admin/members', icon: <Users size={18} />, end: true },
+    { name: 'Register member', path: '/admin/members/new', icon: <UserPlus size={18} /> },
     { name: 'Activity Logs', path: '/admin/reports', icon: <Activity size={18} /> },
     { name: 'Financials', path: '/admin/finance', icon: <Wallet size={18} /> },
-    { name: 'Resources', path: '#', icon: <FolderOpen size={18} /> },
+    { name: 'Resources', path: '/admin/resources', icon: <FolderOpen size={18} /> },
   ];
 
   return (
@@ -33,10 +35,11 @@ const Sidebar = () => {
           <NavLink
             key={item.name}
             to={item.path}
+            end={item.end}
             className={({ isActive }) => 
               `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
                 isActive 
-                ? 'bg-[#EBF5F1] text-[#065F46] border-r-4 border-[#065F46]' 
+                ? 'border-r-4 border-brand bg-brand-soft text-brand' 
                 : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
               }`
             }

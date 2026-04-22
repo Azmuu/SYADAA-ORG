@@ -4,7 +4,7 @@ import React from 'react';
 export const StatCard = ({ icon, label, value, trend, isPositive }) => (
   <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
     <div className="flex justify-between items-start mb-4">
-      <div className="p-3 bg-gray-50 rounded-xl text-[#065F46]">
+      <div className="rounded-xl bg-brand-soft p-3 text-brand">
         {icon}
       </div>
       {trend && (
@@ -29,7 +29,7 @@ export const DataCard = ({ title, subtitle, children, footerAction }) => (
         {subtitle && <p className="text-xs text-gray-400 mt-1">{subtitle}</p>}
       </div>
       {footerAction && (
-        <button className="text-[10px] font-bold text-[#065F46] uppercase hover:underline">
+        <button className="text-[10px] font-bold uppercase text-brand hover:underline">
           {footerAction}
         </button>
       )}

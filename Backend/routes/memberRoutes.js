@@ -1,12 +1,24 @@
 import express from "express";
-import { getMembers, createMember } from "../controllers/memberController.js";
+import authMiddleware from "../middleware/authMiddleware.js";
+import requireStaff from "../middleware/requireStaff.js";
+import {
+  getMembers,
+  getMemberById,
+  createMember,
+  updateMember,
+  deleteMember,
+  resetPortalCredentials,
+} from "../controllers/memberController.js";
 
 const router = express.Router();
+router.use(authMiddleware);
+router.use(requireStaff);
 
-// Get all members
 router.get("/", getMembers);
-
-// Add new member
 router.post("/", createMember);
+router.post("/:id/portal-credentials", resetPortalCredentials);
+router.get("/:id", getMemberById);
+router.put("/:id", updateMember);
+router.delete("/:id", deleteMember);
 
 export default router;

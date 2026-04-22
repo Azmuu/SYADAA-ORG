@@ -8,6 +8,8 @@ const reportSchema = new mongoose.Schema(
       type: String,
       enum: ["verified", "processing", "archived"],
     },
+    /** Snapshot / notes built from live finance + members (not fake seed). */
+    summary: { type: String, default: "" },
     file_url: String,
   },
   { timestamps: true }

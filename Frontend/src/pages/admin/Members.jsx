@@ -1,214 +1,604 @@
-import React from 'react';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  Filter, 
-  ArrowUpDown, 
-  MoreHorizontal, 
-  ChevronLeft, 
-  ChevronRight,
-  ClipboardList,
-  ShieldCheck,
-  TrendingUp,
-  CheckCircle2
-} from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import {
+  Users,
+  UserPlus,
+  Search,
+  Pencil,
+  Trash2,
+  Loader2,
+  Wallet,
+  RefreshCw,
+  X,
+  ZoomIn,
+  ZoomOut,
+  Mail,
+} from "lucide-react";
+import { membersApi } from "../../services/membersApi";
+
+/** Smallest value = most zoomed out (includes an extra step vs typical 3-stop controls). */
+const PHOTO_ZOOM_SCALES = [1, 0.88, 0.76, 0.64, 0.52];
 
 const Members = () => {
-  return (
-    <div className="p-8 bg-[#F9FAFB] min-h-screen font-sans text-gray-800">
-      
-      {/* Top Search Bar (Sida sawirka sare ku jirta) */}
-      <div className="flex justify-between items-center mb-8">
-        <div className="relative w-1/3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Search the archive..." 
-            className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-green-600 transition"
-          />
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-right">
-            <p className="text-sm font-bold">Admin User</p>
-            <p className="text-[10px] text-gray-500 uppercase">System Lead</p>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden border border-gray-300">
-            <img src="https://ui-avatars.com/api/?name=Admin+User&background=065F46&color=fff" alt="avatar" />
-          </div>
-        </div>
-      </div>
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [rows, setRows] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [deletingId, setDeletingId] = useState(null);
+  const [detailMember, setDetailMember] = useState(null);
+  const [photoZoomIdx, setPhotoZoomIdx] = useState(0);
+  const [portalNotice, setPortalNotice] = useState(null);
+  const [portalCredLoading, setPortalCredLoading] = useState(false);
+  const [portalCredError, setPortalCredError] = useState("");
+  const [portalCredResult, setPortalCredResult] = useState(null);
 
-      {/* Title & Add Member Section */}
-      <header className="flex justify-between items-end mb-8">
+  useEffect(() => {
+    if (detailMember) setPhotoZoomIdx(0);
+  }, [detailMember?._id]);
+
+  useEffect(() => {
+    setPortalCredResult(null);
+    setPortalCredError("");
+    setPortalCredLoading(false);
+  }, [detailMember?._id]);
+
+  useEffect(() => {
+    if (!detailMember) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") setDetailMember(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [detailMember]);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const data = await membersApi.getAll();
+      setRows(Array.isArray(data) ? data : []);
+    } catch (e) {
+      setError(e.message || "Could not load members");
+      setRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const p = location.state?.portalNotice;
+    if (p != null) {
+      setPortalNotice(p);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
+
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return rows;
+    return rows.filter((m) => {
+      const blob = [m.name, m.email, m.phone, m.title, m.address, m.program].filter(Boolean).join(" ").toLowerCase();
+      return blob.includes(q);
+    });
+  }, [rows, query]);
+
+  const onDelete = async (id, name) => {
+    if (!window.confirm(`Delete member "${name}"? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await membersApi.remove(id);
+      setRows((r) => r.filter((x) => x._id !== id));
+      setDetailMember((d) => (d && d._id === id ? null : d));
+    } catch (e) {
+      alert(e.message || "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const statusStyle = (s) => {
+    switch (s) {
+      case "active":
+        return "bg-emerald-50 text-emerald-800";
+      case "pending":
+        return "bg-amber-50 text-amber-800";
+      default:
+        return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const formatDate = (v) => {
+    if (v == null || v === "") return "—";
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleDateString(undefined, { dateStyle: "medium" });
+  };
+
+  const formatDateTime = (v) => {
+    if (v == null || v === "") return "—";
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const sendPortalCredentials = async () => {
+    if (!detailMember?._id) return;
+    setPortalCredLoading(true);
+    setPortalCredError("");
+    try {
+      const data = await membersApi.resetPortalCredentials(detailMember._id);
+      setPortalCredResult(data);
+      if (import.meta.env.DEV && (data.temporaryPassword || data.etherealPreviewUrl)) {
+        console.info(
+          "[SYADA portal] Password reset (browser console)",
+          "\n  Email:",
+          detailMember.email,
+          data.temporaryPassword ? `\n  Password: ${data.temporaryPassword}` : "",
+          `\n  Login: ${data.loginUrl || ""}`,
+          data.etherealPreviewUrl ? `\n  Ethereal: ${data.etherealPreviewUrl}` : ""
+        );
+      }
+    } catch (e) {
+      setPortalCredError(e.message || "Could not reset credentials");
+      setPortalCredResult(null);
+    } finally {
+      setPortalCredLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[#F9FAFB] pb-12 font-sans text-gray-800">
+      <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="text-[10px] font-bold text-green-700 uppercase tracking-widest mb-1">System Registry</p>
-          <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Member Directory</h1>
-          <p className="text-gray-500 text-sm mt-3 max-w-2xl leading-relaxed">
-            Oversee and manage the diverse community that forms the backbone of SYADA. 
-            Access full profiles, historical contributions, and status updates.
+          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand">Member directory</p>
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Members</h1>
+          <p className="mt-2 max-w-xl text-sm text-gray-500">
+            View, update, or remove member records. Registering a new member creates a portal login and emails a
+            temporary password to their address.
           </p>
         </div>
-        <button className="flex items-center gap-2 px-5 py-2.5 bg-[#065F46] text-white rounded-lg text-sm font-bold hover:bg-opacity-90 transition shadow-sm">
-          <UserPlus size={18} />
-          Add New Member
-        </button>
-      </header>
-
-      {/* Stats Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm relative">
-           <div className="flex justify-between items-start">
-              <div className="bg-green-50 p-3 rounded-lg text-green-700"><Users size={24}/></div>
-              <span className="text-[10px] font-bold text-green-600">+12% vs last month</span>
-           </div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase mt-4 tracking-wider">Total Active Members</p>
-           <h2 className="text-3xl font-black text-gray-900">1,284</h2>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => load()}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+          >
+            <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+            Refresh
+          </button>
+          <Link
+            to="/admin/members/new"
+            className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark"
+          >
+            <UserPlus size={18} />
+            Register member
+          </Link>
         </div>
+      </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm relative">
-           <div className="flex justify-between items-start">
-              <div className="bg-orange-50 p-3 rounded-lg text-orange-600"><ClipboardList size={24}/></div>
-              <span className="text-[10px] font-bold text-orange-600">Priority Processing</span>
-           </div>
-           <p className="text-[10px] font-bold text-gray-400 uppercase mt-4 tracking-wider">New Requests</p>
-           <h2 className="text-3xl font-black text-gray-900">42</h2>
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative max-w-md flex-1">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search by name, phone, email, title…"
+            className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
+          />
         </div>
+        <p className="text-xs font-medium text-gray-400">
+          {filtered.length} of {rows.length} shown
+        </p>
+      </div>
 
-        <div className="bg-[#065F46] p-6 rounded-xl text-white relative overflow-hidden">
-           <div className="relative z-10">
-              <p className="text-[10px] font-bold opacity-80 uppercase tracking-widest">Directory Health</p>
-              <h2 className="text-3xl font-black mt-1">98.4%</h2>
-              <div className="mt-6 flex items-center gap-2 text-[10px] opacity-90">
-                <CheckCircle2 size={14}/>
-                All records synchronized with core ledger
+      {portalNotice && (
+        <div
+          className={`mb-6 rounded-xl border px-4 py-3 text-sm ${
+            portalNotice.emailSent
+              ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+              : "border-amber-200 bg-amber-50 text-amber-900"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              {portalNotice.emailSent ? (
+                <>
+                  <p className="font-medium">Member saved. Login message was sent (check Ethereal preview if you use test mail).</p>
+                  {portalNotice.etherealPreviewUrl && (
+                    <p className="mt-2 text-xs">
+                      <a
+                        href={portalNotice.etherealPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold text-emerald-950 underline"
+                      >
+                        Open free test email (Ethereal)
+                      </a>
+                    </p>
+                  )}
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">Member saved, but the email was not sent.</p>
+                  {portalNotice.mailError && (
+                    <p className="mt-1 text-xs opacity-90">{portalNotice.mailError}</p>
+                  )}
+                  <p className="mt-2 text-xs">Share this one-time password with the member securely:</p>
+                  {portalNotice.temporaryPassword && (
+                    <code className="mt-1 inline-block break-all rounded bg-white/70 px-2 py-1 font-mono text-xs">
+                      {portalNotice.temporaryPassword}
+                    </code>
+                  )}
+                  {portalNotice.loginUrl && (
+                    <p className="mt-2 text-xs">
+                      Sign-in page:{" "}
+                      <a href={portalNotice.loginUrl} className="font-semibold underline">
+                        {portalNotice.loginUrl}
+                      </a>
+                    </p>
+                  )}
+                  {portalNotice.etherealPreviewUrl && (
+                    <p className="mt-2 text-xs">
+                      <a
+                        href={portalNotice.etherealPreviewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold underline"
+                      >
+                        Open Ethereal preview (see the “email”)
+                      </a>
+                    </p>
+                  )}
+                </>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPortalNotice(null)}
+              className="shrink-0 rounded-lg p-1 text-current opacity-70 hover:opacity-100"
+              aria-label="Dismiss"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+          {error}
+          <p className="mt-1 text-xs text-red-700">
+            Ensure the API is running and set <code className="rounded bg-red-100 px-1">VITE_API_URL</code> if needed
+            (default <code className="rounded bg-red-100 px-1">http://localhost:5001/api</code>).
+          </p>
+        </div>
+      )}
+
+      <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[880px] text-left text-sm">
+            <thead className="border-b border-gray-100 bg-gray-50/80">
+              <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                <th className="px-4 py-3 pl-6">Photo</th>
+                <th className="px-4 py-3">Name</th>
+                <th className="px-4 py-3">Phone</th>
+                <th className="px-4 py-3">Email</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Blood</th>
+                <th className="px-4 py-3">Finance</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 pr-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {loading && (
+                <tr>
+                  <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
+                    <Loader2 className="mx-auto mb-2 size-6 animate-spin text-brand" />
+                    Loading members…
+                  </td>
+                </tr>
+              )}
+              {!loading && filtered.length === 0 && (
+                <tr>
+                  <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
+                    No members found.{" "}
+                    <Link to="/admin/members/new" className="font-semibold text-brand hover:underline">
+                      Register the first member
+                    </Link>
+                    .
+                  </td>
+                </tr>
+              )}
+              {!loading &&
+                filtered.map((m) => (
+                  <tr
+                    key={m._id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setDetailMember(m)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        setDetailMember(m);
+                      }
+                    }}
+                    className="cursor-pointer hover:bg-gray-50/80"
+                  >
+                    <td className="px-4 py-3 pl-6">
+                      <img
+                        src={
+                          m.picture ||
+                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name || "?")}&background=e8f5ef&color=0d7a52`
+                        }
+                        alt=""
+                        className="size-10 rounded-xl border border-gray-100 object-cover"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-gray-900">{m.name || "—"}</p>
+                      <p className="text-xs text-gray-400 line-clamp-1">{m.address || m.program || ""}</p>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-gray-700">{m.phone || "—"}</td>
+                    <td className="max-w-[140px] truncate px-4 py-3 text-gray-500">{m.email || "—"}</td>
+                    <td className="px-4 py-3 text-gray-700">{m.title || "—"}</td>
+                    <td className="px-4 py-3 text-gray-600">{m.blood_type || "—"}</td>
+                    <td className="px-4 py-3">
+                      {m.is_finance_member ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase text-brand">
+                          <Wallet size={12} />
+                          Yes
+                        </span>
+                      ) : (
+                        <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${statusStyle(m.status)}`}>
+                        {m.status || "pending"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="flex justify-end gap-1">
+                        <Link
+                          to={`/admin/members/${m._id}/edit`}
+                          className="inline-flex rounded-lg p-2 text-brand hover:bg-brand-soft"
+                          title="Edit"
+                        >
+                          <Pencil size={18} />
+                        </Link>
+                        <button
+                          type="button"
+                          title="Delete"
+                          disabled={deletingId === m._id}
+                          onClick={() => onDelete(m._id, m.name)}
+                          className="inline-flex rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        >
+                          {deletingId === m._id ? <Loader2 className="size-[18px] animate-spin" /> : <Trash2 size={18} />}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="mt-8 flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 text-xs text-gray-500">
+        <Users size={16} className="text-brand" />
+        Tip: with <code className="text-[10px]">MAIL_USE_ETHEREAL=true</code>, open the Ethereal link after signup to see the test “email”. Set <code className="text-[10px]">FRONTEND_LOGIN_URL</code> in Backend <code className="text-[10px]">.env</code> to match your Vite port. Click a row for details and “New password & email”.
+      </div>
+
+      {detailMember && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center" aria-modal="true" role="dialog">
+          <button
+            type="button"
+            className="absolute inset-0 bg-gray-900/40 backdrop-blur-[1px]"
+            aria-label="Close member details"
+            onClick={() => setDetailMember(null)}
+          />
+          <div className="relative flex max-h-[min(90vh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-5 py-4">
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-brand">Member</p>
+                <h2 className="truncate text-lg font-bold text-gray-900">{detailMember.name || "—"}</h2>
+                <p className="truncate text-sm text-gray-500">{detailMember.title || "No title"}</p>
               </div>
-           </div>
-           {/* Decorative Wave Design */}
-           <div className="absolute right-[-20px] bottom-[-20px] opacity-10">
-              <Users size={120} />
-           </div>
-        </div>
-      </div>
-
-      {/* Directory Table Section */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-10">
-        <div className="p-6 flex justify-between items-center border-b border-gray-50">
-          <div className="flex gap-2">
-            <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold hover:bg-gray-100 transition">
-              <Filter size={14}/> Filter
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 bg-gray-50 border border-gray-100 rounded-lg text-xs font-bold hover:bg-gray-100 transition">
-              <ArrowUpDown size={14}/> Sort
-            </button>
-          </div>
-          <p className="text-[11px] text-gray-400 font-medium">Showing 1-10 of 1,284 records</p>
-        </div>
-
-        <table className="w-full text-left">
-          <thead className="bg-gray-50/50">
-            <tr className="text-[10px] uppercase font-bold text-gray-400 tracking-widest border-b border-gray-50">
-              <th className="px-8 py-4">Member</th>
-              <th className="px-8 py-4">Program / Role</th>
-              <th className="px-8 py-4">Joined</th>
-              <th className="px-8 py-4">Status</th>
-              <th className="px-8 py-4 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            <MemberRow 
-              name="Amari Okafor" email="amari.o@syada.org" program="Youth Mentorship" 
-              date="Oct 24, 2022" status="ACTIVE" statusBg="bg-green-100 text-green-700"
-              img="https://i.pravatar.cc/150?u=amari"
-            />
-            <MemberRow 
-              name="Layla Hassan" email="l.hassan@archive.syada" program="Heritage Council" 
-              date="Jan 12, 2024" status="PENDING" statusBg="bg-orange-100 text-orange-700"
-              img="https://i.pravatar.cc/150?u=layla"
-            />
-            <MemberRow 
-              name="Marcus Chen" email="m.chen@community.net" program="Digital Literacy" 
-              date="Mar 05, 2023" status="ACTIVE" statusBg="bg-green-100 text-green-700"
-              img="https://i.pravatar.cc/150?u=marcus"
-            />
-            <MemberRow 
-              name="Elena Rodriguez" email="elena.r@syada.org" program="Admin Support" 
-              date="Nov 19, 2021" status="INACTIVE" statusBg="bg-gray-100 text-gray-500"
-              img="https://i.pravatar.cc/150?u=elena"
-            />
-          </tbody>
-        </table>
-
-        {/* Pagination & Footer */}
-        <div className="p-6 flex justify-between items-center bg-white border-t border-gray-50">
-          <div className="flex gap-2">
-            <button className="p-2 border border-gray-100 rounded-lg hover:bg-gray-50"><ChevronLeft size={16}/></button>
-            {[1, 2, 3, '...', 128].map((n, i) => (
-              <button key={i} className={`w-8 h-8 rounded-lg text-xs font-bold transition ${n === 1 ? 'bg-[#065F46] text-white' : 'hover:bg-gray-100 text-gray-500'}`}>
-                {n}
+              <button
+                type="button"
+                onClick={() => setDetailMember(null)}
+                className="shrink-0 rounded-xl p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-800"
+                aria-label="Close"
+              >
+                <X size={20} />
               </button>
-            ))}
-            <button className="p-2 border border-gray-100 rounded-lg hover:bg-gray-50"><ChevronRight size={16}/></button>
+            </div>
+            <div className="overflow-y-auto px-5 py-4">
+              <div className="mb-5 flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+                <div className="flex shrink-0 flex-col items-center gap-2">
+                  <div className="size-24 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
+                    <img
+                      src={
+                        detailMember.picture ||
+                        `https://ui-avatars.com/api/?name=${encodeURIComponent(detailMember.name || "?")}&background=e8f5ef&color=0d7a52&size=128`
+                      }
+                      alt=""
+                      className="size-full object-cover transition-transform duration-200"
+                      style={{
+                        transform: `scale(${PHOTO_ZOOM_SCALES[photoZoomIdx] ?? 1})`,
+                        transformOrigin: "center center",
+                      }}
+                    />
+                  </div>
+                  <div className="flex items-center gap-1 rounded-lg border border-gray-200 bg-white p-0.5 shadow-sm">
+                    <button
+                      type="button"
+                      title="Zoom in"
+                      disabled={photoZoomIdx <= 0}
+                      onClick={() => setPhotoZoomIdx((i) => Math.max(0, i - 1))}
+                      className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ZoomIn size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      title="Zoom out"
+                      disabled={photoZoomIdx >= PHOTO_ZOOM_SCALES.length - 1}
+                      onClick={() => setPhotoZoomIdx((i) => Math.min(PHOTO_ZOOM_SCALES.length - 1, i + 1))}
+                      className="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                    >
+                      <ZoomOut size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="w-full space-y-2 text-sm">
+                  <MemberField label="Email" value={detailMember.email} mono />
+                  <MemberField label="Phone" value={detailMember.phone} mono />
+                  <MemberField label="Address" value={detailMember.address} />
+                  <MemberField label="Program" value={detailMember.program} />
+                </div>
+              </div>
+              <div className="grid gap-3 text-sm sm:grid-cols-2">
+                <MemberField label="Blood type" value={detailMember.blood_type} />
+                <MemberField label="Status" value={detailMember.status} />
+                <MemberField label="Joined" value={formatDate(detailMember.joined_date)} />
+                <MemberField label="Finance member" value={detailMember.is_finance_member ? "Yes" : "No"} />
+                {detailMember.is_finance_member && (
+                  <>
+                    <MemberField
+                      label="Monthly fee"
+                      value={
+                        detailMember.finance_monthly_fee != null && detailMember.finance_monthly_fee !== ""
+                          ? String(detailMember.finance_monthly_fee)
+                          : "—"
+                      }
+                    />
+                    <MemberField label="Payment method" value={detailMember.finance_payment_method} />
+                    <MemberField label="Account ref" value={detailMember.finance_account_ref} />
+                    <MemberField label="Finance notes" value={detailMember.finance_notes} className="sm:col-span-2" />
+                  </>
+                )}
+                <MemberField label="Created" value={formatDateTime(detailMember.createdAt)} />
+                <MemberField label="Last updated" value={formatDateTime(detailMember.updatedAt)} />
+              </div>
+
+              <div className="mt-5 border-t border-gray-100 pt-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">Portal login</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  Passwords are stored encrypted, so the old password cannot be shown. Generate a new password, email it
+                  to this member, and copy it from here.
+                </p>
+                {(detailMember.email || "").trim() ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        sendPortalCredentials();
+                      }}
+                      disabled={portalCredLoading}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2.5 text-xs font-bold text-white hover:bg-gray-800 disabled:opacity-60"
+                    >
+                      {portalCredLoading ? <Loader2 className="size-4 animate-spin" /> : <Mail size={16} />}
+                      {portalCredLoading ? "Working…" : "New password & email to member"}
+                    </button>
+                    {portalCredError && <p className="mt-2 text-xs text-red-700">{portalCredError}</p>}
+                    {portalCredResult && (
+                      <div className="mt-4 rounded-xl border border-brand/20 bg-brand-soft/50 p-3">
+                        <MemberField label="New password" value={portalCredResult.temporaryPassword} mono />
+                        {portalCredResult.temporaryPassword && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              void navigator.clipboard?.writeText(portalCredResult.temporaryPassword);
+                            }}
+                            className="mt-1 text-xs font-bold text-brand hover:underline"
+                          >
+                            Copy password
+                          </button>
+                        )}
+                        {portalCredResult.emailSent ? (
+                          <>
+                            <p className="mt-2 text-xs font-medium text-emerald-800">Message sent (use Ethereal link below if testing).</p>
+                            {portalCredResult.etherealPreviewUrl && (
+                              <p className="mt-2 text-xs">
+                                <a
+                                  href={portalCredResult.etherealPreviewUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="font-semibold text-emerald-950 underline"
+                                >
+                                  Open free test email (Ethereal)
+                                </a>
+                              </p>
+                            )}
+                          </>
+                        ) : (
+                          <p className="mt-2 text-xs text-amber-900">
+                            Email was not sent.
+                            {portalCredResult.mailError && (
+                              <span className="mt-1 block opacity-90">{portalCredResult.mailError}</span>
+                            )}
+                            <span className="mt-1 block">
+                              Share the password above manually and configure SMTP in Backend <code className="text-[10px]">.env</code>.
+                            </span>
+                          </p>
+                        )}
+                        {portalCredResult.loginUrl && (
+                          <p className="mt-2 text-[11px] text-gray-600">
+                            Sign-in:{" "}
+                            <a href={portalCredResult.loginUrl} className="font-semibold text-brand underline">
+                              {portalCredResult.loginUrl}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-amber-800">
+                    This member has no email — add one via Edit member before sending login details.
+                  </p>
+                )}
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 border-t border-gray-100 bg-gray-50/80 px-5 py-4">
+              <Link
+                to={`/admin/members/${detailMember._id}/edit`}
+                onClick={() => setDetailMember(null)}
+                className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark sm:flex-none"
+              >
+                <Pencil size={16} />
+                Edit member
+              </Link>
+              <button
+                type="button"
+                onClick={() => setDetailMember(null)}
+                className="inline-flex flex-1 items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 sm:flex-none"
+              >
+                Close
+              </button>
+            </div>
           </div>
-          <p className="text-[10px] font-bold text-gray-300 tracking-widest uppercase">Records Management System v2.4.1</p>
         </div>
-      </div>
-
-      {/* Bottom Cards Section */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 hover:shadow-md transition group">
-           <h3 className="text-xl font-bold text-gray-900 mb-2">Member Growth Insights</h3>
-           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-             Analyze the trajectory of community engagement and onboarding efficiency over the last quarter.
-           </p>
-           <button className="flex items-center gap-2 text-xs font-bold text-green-800 hover:gap-3 transition-all">
-             View Analytics Report <TrendingUp size={14}/>
-           </button>
-        </div>
-
-        <div className="bg-gray-50 p-8 rounded-2xl border border-gray-100 hover:shadow-md transition">
-           <h3 className="text-xl font-bold text-gray-900 mb-2">Audit Compliance</h3>
-           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-             All member data is encrypted and handled according to the updated 2024 privacy framework.
-           </p>
-           <button className="flex items-center gap-2 text-xs font-bold text-green-800 hover:gap-3 transition-all">
-             Review Protocol <ShieldCheck size={14}/>
-           </button>
-        </div>
-      </div>
-
+      )}
     </div>
   );
 };
 
-// Helper Component for Table Rows
-const MemberRow = ({ name, email, program, date, status, statusBg, img }) => (
-  <tr className="hover:bg-gray-50/50 transition">
-    <td className="px-8 py-5">
-      <div className="flex items-center gap-3">
-        <img src={img} alt={name} className="w-9 h-9 rounded-full object-cover border border-gray-100" />
-        <div>
-          <h4 className="text-sm font-bold text-gray-900">{name}</h4>
-          <p className="text-[10px] text-gray-400">{email}</p>
-        </div>
-      </div>
-    </td>
-    <td className="px-8 py-5">
-      <div className="flex items-center gap-2 text-[11px] font-bold text-gray-700">
-        <div className="w-1.5 h-1.5 rounded-full bg-green-500"></div>
-        {program}
-      </div>
-    </td>
-    <td className="px-8 py-5 text-xs text-gray-500 font-medium">{date}</td>
-    <td className="px-8 py-5">
-      <span className={`text-[10px] font-black px-2.5 py-1 rounded ${statusBg} tracking-wider`}>
-        {status}
-      </span>
-    </td>
-    <td className="px-8 py-5 text-center text-gray-300">
-      <button className="hover:text-gray-600 transition"><MoreHorizontal size={20}/></button>
-    </td>
-  </tr>
-);
+function MemberField({ label, value, mono, className = "" }) {
+  const display = value != null && String(value).trim() !== "" ? String(value) : "—";
+  return (
+    <div className={className}>
+      <p className="text-[10px] font-bold uppercase tracking-wider text-gray-400">{label}</p>
+      <p className={`mt-0.5 font-medium text-gray-900 ${mono ? "break-all font-mono text-[13px]" : ""}`}>{display}</p>
+    </div>
+  );
+}
 
 export default Members;

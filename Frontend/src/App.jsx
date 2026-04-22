@@ -16,8 +16,12 @@ import Login from './auth/Login';
 // Admin Pages
 import Dashboard from './pages/admin/Dashboard';
 import Members from './pages/admin/Members';
+import MemberFormPage from './pages/admin/MemberFormPage';
 import Finance from './pages/admin/Finance';
 import Reports from './pages/admin/Reports';
+import Resources from './pages/admin/Resources';
+import PortalLayout from './layouts/PortalLayout';
+import PortalDashboard from './pages/portal/PortalDashboard';
 
 // 🔥 Component-kan wuxuu xukumaa muuqashada Navbar-ka
 const NavigationWrapper = () => {
@@ -25,7 +29,8 @@ const NavigationWrapper = () => {
   
   // Haddii URL-ku uu ka bilaawdo "/admin", Navbar-ka ma soo baxayo (null)
   // Sidoo kale haddii aad rabto in bogga Login-ka uusan ka muuqan, ku dar: || location.pathname === '/login'
-  const isHideNavbar = location.pathname.startsWith('/admin');
+  const isHideNavbar =
+    location.pathname.startsWith('/admin') || location.pathname.startsWith('/portal');
 
   return !isHideNavbar ? <Navbar /> : null;
 };
@@ -45,13 +50,20 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
 
+        <Route path="/portal" element={<PortalLayout />}>
+          <Route index element={<PortalDashboard />} />
+        </Route>
+
         {/* Admin Routes - Marka halkan la joogo Navbar-ku waa qarsoon yahay */}
         <Route path="/admin" element={<AdminLayout />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
+          <Route path="members/new" element={<MemberFormPage />} />
+          <Route path="members/:id/edit" element={<MemberFormPage />} />
           <Route path="members" element={<Members />} />
           <Route path="finance" element={<Finance />} />
           <Route path="reports" element={<Reports />} />
+          <Route path="resources" element={<Resources />} />
         </Route>
 
         {/* Not found - Ku celi Home haddii link khaldan la qoro */}
