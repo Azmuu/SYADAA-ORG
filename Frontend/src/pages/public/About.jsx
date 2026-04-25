@@ -92,10 +92,15 @@ const About = () => {
             <p className="mt-2 text-neutral-500">Hoggaanka fulinta ee SYADA.</p>
           </div>
           <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-3">
-            <LeaderCard name="Asma Cigaal Mohamud" role="Madaxa Maaliyada Ururka" img="/asma.jpeg" />
+            <LeaderCard name="Abdinasir Hire Ismail" role="Gudoomiyaha Ururka SYADA Organization" img="/gudomiye.jpeg" />
+              <LeaderCard name="Abdulaahi Bashiir Abdulaahi" role="Gudoomiye ku xigeenka Ururka Syada Organization" img="/abdalla.jpeg" />
+             <LeaderCard name="Asma Cigaal Mohamud" role="Madaxa Maaliyada Ururka" img="/asma.jpeg" />
+            <LeaderCard name="Abdirashid Abdirahmaan Maxamed" role="Madaxa horumarinta mashaariicda ururka" img="/abdi.jpeg" />
+            <LeaderCard name="Macruuf Axmed Jamac" role="Madaxa arimaha dacwada iyo wacyi gelinta" img="/macruf.jpeg" />
             <LeaderCard name="Jama Abdullahi Omar" role="Afhayeenka Ururka" img="/jamac.jpeg.jpeg" />
-            <LeaderCard name="Ayanle Abdiaziz Mohamud" role="Vice Chair Executive" img="https://i.pravatar.cc/300?u=ayanle" />
-            <LeaderCard name="Saabirin Ali Mohamed" role="Head of Finance" img="https://i.pravatar.cc/300?u=saabirin" />
+            <LeaderCard name="Isse Adan Ahmed" role="Madaxa Arimaha Cafimaadka" img="/isse.jpeg" />
+            <LeaderCard name="Ishak Abdirizak Isse (Gorod)" role="Madaxa ciyaaraha iyo isdhexgalka dhalinyarada" img="/gorod.jpeg" />
+            <LeaderCard name="Abdiaziz Salah Ismail " role="Madaxa Arrimaha Bulshada SYDa Organization" img="/salah.jpeg" />
           </div>
         </div>
       </section>
