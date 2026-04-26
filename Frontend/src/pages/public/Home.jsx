@@ -117,25 +117,25 @@ const Home = () => {
 
   return (
     <div className="bg-brand-muted font-sans text-neutral-900 antialiased">
-      {/* Hero — `public/vedio/home.mp4` only */}
-      <section className="mx-auto max-w-6xl px-5 pb-6 pt-8 lg:px-8 lg:pb-10 lg:pt-10">
-        <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.25rem]">
-          <div className="relative h-[min(78vh,640px)] w-full bg-black">
-            <video
-              className="h-full w-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-              controls={false}
-              preload="auto"
-              poster="/image1.png"
-            >
-              <source src={HERO_VIDEO_SRC} type="video/mp4" />
-            </video>
-          </div>
-          <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
-          <div className="absolute inset-0 z-10 flex flex-col justify-end p-8 pb-10 md:p-12 md:pb-12">
+      {/* Hero — full-width video (no max-width container) */}
+      <section className="relative w-full">
+        <div className="relative h-[min(78vh,640px)] w-full min-h-[280px] bg-black md:h-[min(85vh,720px)]">
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            autoPlay
+            muted
+            loop
+            playsInline
+            controls={false}
+            preload="auto"
+            poster="/image1.png"
+          >
+            <source src={HERO_VIDEO_SRC} type="video/mp4" />
+          </video>
+        </div>
+        <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
+        <div className="absolute inset-0 z-10 flex flex-col justify-end">
+          <div className="mx-auto w-full max-w-6xl px-5 pb-10 pt-8 md:px-8 md:pb-14">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/80">Official portal</p>
             <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
               Dhisidda dhallinyarada hormuudka ah.
