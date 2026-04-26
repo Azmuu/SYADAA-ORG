@@ -1,8 +1,68 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ExternalLink, ArrowRight, ArrowUpRight } from 'lucide-react';
 import Footer from '../../components/Footer';
 import About from './About';
+import activitiesManifest from '../../data/activities-manifest.json';
+import { publicFolderFile } from '../../lib/publicMediaUrl';
+
+const { activities: publicActivities } = activitiesManifest;
+
+/** Clips in `public/vedio/` — they play in order, then loop to the first (hero replaces the old photo rotator) */
+const HERO_VIDEOS = [
+  'home.mp4',
+  'WhatsApp Video 2026-04-15 at 4.49.03 AM.mp4',
+  'WhatsApp Video 2026-04-15 at 4.49.03 AM (1).mp4',
+  'WhatsApp Video 2026-04-18 at 12.44.38 AM.mp4',
+  'WhatsApp Video 2026-04-25 at 9.49.53 PM.mp4',
+].map((name) => publicFolderFile('vedio', name));
+
+const ActivityImageLoop = ({ activity }) => {
+  const urls = useMemo(
+    () => activity.images.map((f) => publicFolderFile(activity.folder, f)),
+    [activity.folder, activity.images]
+  );
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    if (urls.length <= 1) return;
+    const t = setInterval(() => {
+      setI((x) => (x + 1) % urls.length);
+    }, 3500);
+    return () => clearInterval(t);
+  }, [urls.length]);
+
+  if (!urls.length) {
+    return <div className="h-52 bg-brand-muted" />;
+  }
+
+  return (
+    <div className="relative h-52 overflow-hidden bg-black/5">
+      {urls.map((src, idx) => (
+        <img
+          key={src}
+          src={src}
+          alt=""
+          loading={idx === 0 ? 'eager' : 'lazy'}
+          className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ${
+            idx === i ? 'opacity-100' : 'pointer-events-none opacity-0'
+          }`}
+        />
+      ))}
+      {urls.length > 1 && (
+        <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1">
+          {urls.map((_, idx) => (
+            <span
+              key={idx}
+              className={`h-1.5 rounded-full transition-all ${idx === i ? 'w-4 bg-white' : 'w-1.5 bg-white/50'}`}
+              aria-hidden
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const InsightCard = ({ img, tag, title, desc }) => (
   <div className="group cursor-pointer">
@@ -30,43 +90,7 @@ const InsightCard = ({ img, tag, title, desc }) => (
 );
 
 const Home = () => {
-  const activitiesData = [
-    {
-      id: 1,
-      image: 'https://images.unsplash.com/photo-1523240682765-609e817590ff?auto=format&fit=crop&w=800',
-      title: 'Booqashada Iskuulka Barkhadle',
-      desc: 'Booqasho indho-indheyn ah oo aan ku tagnay Dugsiga Hoose/Dhexe ee Barkhadle ee magaalada Gaalkacyo, Mudug.',
-      tag: 'Education',
-    },
-    {
-      id: 2,
-      image: 'https://images.unsplash.com/photo-1517649763962-0c6234278a0b?auto=format&fit=crop&w=800',
-      title: 'Kulaanka Dhallinyarada Sport-ga',
-      desc: 'Kulan Muqdisho ugu qabannay dhallinyarada Sport-ga degmada Goldogob xilli ay u tartamayeen koobka gobolka Mudug.',
-      tag: 'Sports',
-    },
-    {
-      id: 3,
-      image: 'https://images.unsplash.com/photo-1511632765486-a01980e01a18?auto=format&fit=crop&w=800',
-      title: 'Doorashada Hoggaanka Cusub',
-      desc: 'Waxaa si guul ah inoogu soo dhammaatay doorashadii ururka, taas oo uu ku guulaystay Gudoomiye Abdinasir Hire.',
-      tag: 'Leadership',
-    },
-    {
-      id: 4,
-      image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=800',
-      title: 'Kulan Madaxda Qaranka',
-      desc: 'Kulan aan la qaadanay Xildhibaan Fordows iyo Xildhibaan Ahmed Taajir, annagoo uga warbixinnay waxqabadka SYADA.',
-      tag: 'Governance',
-    },
-    {
-      id: 5,
-      image: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800',
-      title: 'Isbarashada Team-ka SYADA',
-      desc: 'Kulan is-xog-wareysi iyo isbarasho ah oo u qabsoomay xubnaha kooxda si loo xoojiyo wada-shaqaynta.',
-      tag: 'Internal',
-    },
-  ];
+  const [heroVideoIdx, setHeroVideoIdx] = useState(0);
 
   useEffect(() => {
     if (window.location.hash === '#activities') {
@@ -101,16 +125,54 @@ const Home = () => {
 
   return (
     <div className="bg-brand-muted font-sans text-neutral-900 antialiased">
-      {/* Hero */}
+      {/* Hero — background video(s) from public/vedio/ */}
       <section className="mx-auto max-w-6xl px-5 pb-6 pt-8 lg:px-8 lg:pb-10 lg:pt-10">
         <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.25rem]">
-          <img
-            src="/image1.png"
-            alt="SYADA community"
-            className="h-[min(78vh,640px)] w-full object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
-          <div className="absolute inset-0 flex flex-col justify-end p-8 pb-10 md:p-12 md:pb-12">
+          {HERO_VIDEOS.length > 0 ? (
+            <div className="relative h-[min(78vh,640px)] w-full bg-black">
+              <video
+                key={HERO_VIDEOS[heroVideoIdx]}
+                className="h-full w-full object-cover"
+                autoPlay
+                muted
+                loop={HERO_VIDEOS.length < 2}
+                playsInline
+                controls={false}
+                preload="auto"
+                poster="/image1.png"
+                onEnded={() => {
+                  if (HERO_VIDEOS.length > 1) {
+                    setHeroVideoIdx((x) => (x + 1) % HERO_VIDEOS.length);
+                  }
+                }}
+              >
+                <source src={HERO_VIDEOS[heroVideoIdx]} type="video/mp4" />
+              </video>
+            </div>
+          ) : (
+            <img
+              src="/image1.png"
+              alt="SYADA community"
+              className="h-[min(78vh,640px)] w-full object-cover"
+            />
+          )}
+          <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
+          {HERO_VIDEOS.length > 1 && (
+            <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
+              {HERO_VIDEOS.map((_, i) => (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => setHeroVideoIdx(i)}
+                  className={`h-2 rounded-full transition-all ${
+                    i === heroVideoIdx ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'
+                  }`}
+                  aria-label={`Play clip ${i + 1}`}
+                />
+              ))}
+            </div>
+          )}
+          <div className="absolute inset-0 z-10 flex flex-col justify-end p-8 pb-10 md:p-12 md:pb-12">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/80">Official portal</p>
             <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
               Dhisidda dhallinyarada hormuudka ah.
@@ -206,21 +268,29 @@ const Home = () => {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {activitiesData.map((activity) => (
+          {publicActivities.length === 0 && (
+            <p className="mb-6 rounded-2xl border border-dashed border-brand/20 bg-white px-4 py-6 text-center text-sm text-neutral-500">
+              Add activity folders (photos) under <code className="rounded bg-brand-muted px-1.5 py-0.5 text-xs">public/</code> on the
+              site, then run{" "}
+              <code className="rounded bg-brand-muted px-1.5 py-0.5 text-xs">node scripts/generate-activities-manifest.mjs</code> in the
+              Frontend to refresh the list. The <code className="text-xs">vedio</code> folder is ignored.
+            </p>
+          )}
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {publicActivities.map((activity) => (
               <article
                 key={activity.id}
                 className="overflow-hidden rounded-3xl border border-brand/10 bg-white shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="relative h-52 overflow-hidden">
-                  <img src={activity.image} alt="" className="h-full w-full object-cover transition-transform duration-500 hover:scale-105" />
-                  <span className="absolute left-4 top-4 rounded-full bg-brand px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm">
+                <div className="relative">
+                  <span className="absolute left-4 top-4 z-20 rounded-full bg-brand px-3 py-1 text-[9px] font-semibold uppercase tracking-wider text-white shadow-sm">
                     {activity.tag}
                   </span>
+                  <ActivityImageLoop activity={activity} />
                 </div>
-                <div className="p-6">
+                <div className="p-5">
                   <h3 className="text-lg font-semibold leading-snug text-neutral-900">{activity.title}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-neutral-500">{activity.desc}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-neutral-500">{activity.desc}</p>
                 </div>
               </article>
             ))}
