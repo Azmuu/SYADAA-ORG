@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Moon, Sun } from 'lucide-react';
 import logoMark from '../assets/logo.jpeg';
 import { useTheme } from '../context/ThemeContext';
 
@@ -11,7 +11,7 @@ const navClass = (isDark) => ({ isActive }) =>
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
-  const { isDark } = useTheme();
+  const { isDark, toggleTheme } = useTheme();
 
   return (
     <header
@@ -72,7 +72,18 @@ const Navbar = () => {
           </NavLink>
         </div>
 
-        <div className="hidden items-center gap-6 md:flex">
+        <div className="hidden items-center gap-4 md:flex">
+          <button
+            type="button"
+            onClick={toggleTheme}
+            className={`rounded-full p-2 transition-colors ${
+              isDark ? 'text-amber-200/90 hover:bg-white/10' : 'text-neutral-600 hover:bg-brand-soft/50'
+            }`}
+            aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={isDark ? 'Light mode' : 'Dark mode'}
+          >
+            {isDark ? <Sun size={20} /> : <Moon size={20} />}
+          </button>
           <Link
             to="/login"
             className={`text-sm font-medium transition-colors hover:text-brand ${isDark ? 'text-gray-300' : 'text-neutral-600'}`}
@@ -116,6 +127,22 @@ const Navbar = () => {
             <Link to="/contact" className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-neutral-800'}`} onClick={() => setOpen(false)}>
               Contact
             </Link>
+            <div className="flex items-center justify-between gap-2">
+              <span className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-neutral-500'}`}>Theme</span>
+              <button
+                type="button"
+                onClick={() => {
+                  toggleTheme();
+                }}
+                className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-medium ${
+                  isDark ? 'bg-white/10 text-amber-200' : 'bg-brand-soft/80 text-neutral-800'
+                }`}
+                aria-pressed={isDark}
+              >
+                {isDark ? <Sun size={16} /> : <Moon size={16} />}
+                {isDark ? 'Light' : 'Dark'}
+              </button>
+            </div>
             <Link to="/login" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-neutral-600'}`} onClick={() => setOpen(false)}>
               Login
             </Link>

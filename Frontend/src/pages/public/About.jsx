@@ -3,7 +3,7 @@ import { CheckCircle2, Lightbulb, Globe, Users, Target, Eye } from 'lucide-react
 
 const About = () => {
   return (
-    <div className="bg-white">
+    <div className="bg-white transition-colors duration-200 dark:bg-[#0c1210]">
       {/* Header Section */}
       <section className="mx-auto grid max-w-6xl grid-cols-1 items-center gap-12 px-5 py-20 lg:grid-cols-2 lg:px-8">
         <div>
@@ -26,7 +26,7 @@ const About = () => {
       <section className="border-y border-brand/10 bg-brand-muted py-20 lg:py-24">
         <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-5 md:grid-cols-2 lg:px-8">
           {/* Mission Card */}
-          <div className="rounded-[2rem] border border-brand/10 bg-white p-10 shadow-sm">
+          <div className="rounded-[2rem] border border-brand/10 bg-white p-10 shadow-sm dark:border-white/10 dark:bg-gray-900">
             <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-brand shadow-sm">
               <Target className="text-white" size={24} />
             </div>
@@ -113,18 +113,26 @@ const About = () => {
 const PillarCard = ({ icon, title, desc, isDark }) => (
   <div
     className={`rounded-3xl p-8 text-left transition-all ${
-      isDark ? 'bg-brand text-white' : 'border border-brand/10 bg-white hover:shadow-md'
+      isDark
+        ? 'bg-brand text-white'
+        : 'border border-brand/10 bg-white hover:shadow-md dark:border-white/10 dark:bg-gray-900'
     }`}
   >
-    <div className={`mb-6 inline-block rounded-xl p-3 ${isDark ? 'bg-white/10' : 'bg-neutral-100'}`}>{icon}</div>
+    <div
+      className={`mb-6 inline-block rounded-xl p-3 ${
+        isDark ? 'bg-white/10' : 'bg-neutral-100 dark:bg-gray-800'
+      }`}
+    >
+      {icon}
+    </div>
     <h3 className="mb-3 text-lg font-semibold">{title}</h3>
     <p className={`text-sm leading-relaxed ${isDark ? 'text-white/70' : 'text-neutral-500'}`}>{desc}</p>
   </div>
 );
 
 const LeaderCard = ({ name, role, img }) => (
-  <div className="group rounded-[2rem] border border-brand/10 bg-white p-8 text-center shadow-sm transition-all duration-300 hover:shadow-md">
-    <div className="relative mx-auto mb-6 h-48 w-48 overflow-hidden rounded-full border-4 border-white shadow-md">
+  <div className="group rounded-[2rem] border border-brand/10 bg-white p-8 text-center shadow-sm transition-all duration-300 hover:shadow-md dark:border-white/10 dark:bg-gray-900">
+    <div className="relative mx-auto mb-6 h-48 w-48 overflow-hidden rounded-full border-4 border-white shadow-md dark:border-gray-700">
       <img 
         src={img} 
         alt={name} 

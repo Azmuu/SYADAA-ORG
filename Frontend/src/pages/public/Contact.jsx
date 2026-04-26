@@ -3,7 +3,7 @@ import { Mail, Phone, MapPin, ArrowUpRight } from 'lucide-react';
 
 const Contact = () => {
   return (
-    <div className="min-h-screen bg-brand-muted">
+    <div className="min-h-screen bg-brand-muted transition-colors duration-200 dark:bg-[#0a100e]">
       <div className="mx-auto max-w-6xl px-5 py-16 lg:px-8 lg:py-20">
         <div className="grid grid-cols-1 gap-16 lg:grid-cols-2 lg:gap-24">
           <div>
@@ -22,7 +22,7 @@ const Contact = () => {
             </div>
           </div>
 
-          <div className="rounded-[2rem] border border-brand/10 bg-white p-8 shadow-sm md:p-12">
+          <div className="rounded-[2rem] border border-brand/10 bg-white p-8 shadow-sm dark:border-white/10 dark:bg-gray-900 md:p-12">
             <form className="space-y-8" onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                 <FormGroup label="Full name" placeholder="Magacaaga" />
@@ -30,7 +30,7 @@ const Contact = () => {
               </div>
               <div>
                 <label className="mb-3 block text-[10px] font-semibold uppercase tracking-widest text-neutral-400">Subject</label>
-                <select className="w-full rounded-xl border-0 bg-brand-soft/40 p-4 text-sm outline-none ring-1 ring-brand/15 focus:ring-2 focus:ring-brand/25">
+                <select className="w-full rounded-xl border-0 bg-brand-soft/40 p-4 text-sm text-neutral-900 outline-none ring-1 ring-brand/15 focus:ring-2 focus:ring-brand/25 dark:bg-brand-soft/40 dark:text-stone-100">
                   <option>General inquiry</option>
                   <option>Partnership</option>
                   <option>Membership</option>
@@ -41,7 +41,7 @@ const Contact = () => {
                 <textarea
                   rows={5}
                   placeholder="Sidee baan kuu caawin karnaa?"
-                  className="w-full resize-none rounded-xl border-0 bg-brand-soft/40 p-4 text-sm outline-none ring-1 ring-brand/15 focus:ring-2 focus:ring-brand/25"
+                  className="w-full resize-none rounded-xl border-0 bg-brand-soft/40 p-4 text-sm text-neutral-900 outline-none ring-1 ring-brand/15 placeholder:text-neutral-500 focus:ring-2 focus:ring-brand/25 dark:text-stone-100 dark:placeholder:text-neutral-500"
                 />
               </div>
               <button
@@ -64,7 +64,7 @@ const Contact = () => {
               />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />
-            <div className="relative z-10 max-w-sm rounded-2xl bg-white p-6 shadow-xl">
+            <div className="relative z-10 max-w-sm rounded-2xl bg-white p-6 shadow-xl dark:bg-gray-900 dark:ring-1 dark:ring-white/10">
               <h4 className="mb-2 text-left text-lg font-semibold text-brand">Ururka dhallinyarada</h4>
               <p className="text-left text-xs leading-relaxed text-neutral-500">
                 SYADA waa urur aan dawli ahayn oo u taagan horumarinta dhallinyarada Soomaaliyeed.
@@ -89,7 +89,7 @@ const Contact = () => {
 
 const ContactLink = ({ icon, label, value }) => (
   <div className="group flex cursor-pointer items-center gap-5">
-    <div className="rounded-2xl bg-white p-4 text-brand shadow-sm ring-1 ring-brand/15 transition-all group-hover:bg-brand group-hover:text-white">
+    <div className="rounded-2xl bg-white p-4 text-brand shadow-sm ring-1 ring-brand/15 transition-all group-hover:bg-brand group-hover:text-white dark:bg-gray-800 dark:text-emerald-400 dark:ring-white/10">
       {icon}
     </div>
     <div>
@@ -105,7 +105,7 @@ const FormGroup = ({ label, placeholder, type = 'text' }) => (
     <input
       type={type}
       placeholder={placeholder}
-      className="w-full rounded-xl border-0 bg-brand-soft/40 p-4 text-sm outline-none ring-1 ring-brand/15 focus:ring-2 focus:ring-brand/25"
+      className="w-full rounded-xl border-0 bg-brand-soft/40 p-4 text-sm text-neutral-900 outline-none ring-1 ring-brand/15 placeholder:text-neutral-500 focus:ring-2 focus:ring-brand/25 dark:text-stone-100 dark:placeholder:text-neutral-500"
     />
   </div>
 );

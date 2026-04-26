@@ -5,7 +5,7 @@ import logoMark from '../assets/logo.jpeg';
 
 const Footer = () => {
   return (
-    <footer className="border-t border-brand/10 bg-brand-muted pb-10 pt-16">
+    <footer className="border-t border-brand/10 bg-brand-muted pb-10 pt-16 transition-colors duration-200 dark:border-white/10 dark:bg-[#0a100e]">
       <div className="mx-auto max-w-6xl px-5 lg:px-8">
         <div className="mb-14 grid grid-cols-1 gap-12 md:grid-cols-12">
           <div className="space-y-5 md:col-span-5">

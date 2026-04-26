@@ -27,11 +27,11 @@ const ActivityImageLoop = ({ activity }) => {
   }, [urls.length]);
 
   if (!urls.length) {
-    return <div className="h-52 bg-brand-muted" />;
+    return <div className="h-52 bg-brand-muted dark:bg-gray-900/80" />;
   }
 
   return (
-    <div className="relative h-52 overflow-hidden bg-black/5">
+    <div className="relative h-52 overflow-hidden bg-black/5 dark:bg-white/5">
       {urls.map((src, idx) => (
         <img
           key={src}
@@ -60,22 +60,22 @@ const ActivityImageLoop = ({ activity }) => {
 
 const InsightCard = ({ img, tag, title, desc }) => (
   <div className="group cursor-pointer">
-    <div className="relative mb-5 h-56 overflow-hidden rounded-3xl">
+    <div className="relative mb-5 h-56 overflow-hidden rounded-3xl border border-transparent dark:border-white/10">
       <img src={img} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
       <div className="absolute left-4 top-4">
-        <span className="rounded-full border border-brand/15 bg-brand-soft/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand shadow-sm backdrop-blur">
+        <span className="rounded-full border border-brand/15 bg-brand-soft/95 px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand shadow-sm backdrop-blur dark:border-brand/30 dark:bg-gray-900/90">
           {tag}
         </span>
       </div>
       <button
         type="button"
-        className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand shadow-md ring-1 ring-brand/10 transition-transform hover:scale-105"
+        className="absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-white text-brand shadow-md ring-1 ring-brand/10 transition-transform hover:scale-105 dark:bg-gray-800 dark:text-brand dark:ring-brand/25"
         aria-label="Open"
       >
         <ArrowUpRight size={18} />
       </button>
     </div>
-    <h3 className="mb-2 text-lg font-semibold leading-snug text-neutral-900 transition-colors group-hover:text-brand">{title}</h3>
+    <h3 className="mb-2 text-lg font-semibold leading-snug text-neutral-900 transition-colors group-hover:text-brand dark:group-hover:text-emerald-400">{title}</h3>
     <p className="mb-3 line-clamp-2 text-sm leading-relaxed text-neutral-500">{desc}</p>
     <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-brand transition-all group-hover:gap-3">
       Read more <ArrowRight size={14} />
@@ -116,7 +116,7 @@ const Home = () => {
   ];
 
   return (
-    <div className="bg-brand-muted font-sans text-neutral-900 antialiased">
+    <div className="bg-brand-muted font-sans text-neutral-900 antialiased transition-[background-color,color] duration-200 dark:bg-[#0a100e] dark:text-stone-100">
       {/* Hero — full-width video (no max-width container) */}
       <section className="relative w-full">
         <div className="relative h-[min(78vh,640px)] w-full min-h-[280px] bg-black md:h-[min(85vh,720px)]">
@@ -159,7 +159,7 @@ const Home = () => {
               <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="/asma.jpeg" alt="" />
               <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="/jamac.jpeg.jpeg" alt="" />
               <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=100" alt="" />
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-soft bg-white text-[10px] font-semibold text-brand">
+              <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-soft bg-white text-[10px] font-semibold text-brand dark:border-brand/30 dark:bg-gray-800">
                 +++
               </div>
             </div>
