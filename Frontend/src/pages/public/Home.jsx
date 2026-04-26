@@ -8,14 +8,8 @@ import { publicFolderFile } from '../../lib/publicMediaUrl';
 
 const { activities: publicActivities } = activitiesManifest;
 
-/** Clips in `public/vedio/` — they play in order, then loop to the first (hero replaces the old photo rotator) */
-const HERO_VIDEOS = [
-  'home.mp4',
-  'WhatsApp Video 2026-04-15 at 4.49.03 AM.mp4',
-  'WhatsApp Video 2026-04-15 at 4.49.03 AM (1).mp4',
-  'WhatsApp Video 2026-04-18 at 12.44.38 AM.mp4',
-  'WhatsApp Video 2026-04-25 at 9.49.53 PM.mp4',
-].map((name) => publicFolderFile('vedio', name));
+/** Home hero uses only `public/vedio/home.mp4` */
+const HERO_VIDEO_SRC = publicFolderFile('vedio', 'home.mp4');
 
 const ActivityImageLoop = ({ activity }) => {
   const urls = useMemo(
@@ -90,8 +84,6 @@ const InsightCard = ({ img, tag, title, desc }) => (
 );
 
 const Home = () => {
-  const [heroVideoIdx, setHeroVideoIdx] = useState(0);
-
   useEffect(() => {
     if (window.location.hash === '#activities') {
       requestAnimationFrame(() => {
@@ -125,53 +117,24 @@ const Home = () => {
 
   return (
     <div className="bg-brand-muted font-sans text-neutral-900 antialiased">
-      {/* Hero — background video(s) from public/vedio/ */}
+      {/* Hero — `public/vedio/home.mp4` only */}
       <section className="mx-auto max-w-6xl px-5 pb-6 pt-8 lg:px-8 lg:pb-10 lg:pt-10">
         <div className="relative overflow-hidden rounded-[2rem] lg:rounded-[2.25rem]">
-          {HERO_VIDEOS.length > 0 ? (
-            <div className="relative h-[min(78vh,640px)] w-full bg-black">
-              <video
-                key={HERO_VIDEOS[heroVideoIdx]}
-                className="h-full w-full object-cover"
-                autoPlay
-                muted
-                loop={HERO_VIDEOS.length < 2}
-                playsInline
-                controls={false}
-                preload="auto"
-                poster="/image1.png"
-                onEnded={() => {
-                  if (HERO_VIDEOS.length > 1) {
-                    setHeroVideoIdx((x) => (x + 1) % HERO_VIDEOS.length);
-                  }
-                }}
-              >
-                <source src={HERO_VIDEOS[heroVideoIdx]} type="video/mp4" />
-              </video>
-            </div>
-          ) : (
-            <img
-              src="/image1.png"
-              alt="SYADA community"
-              className="h-[min(78vh,640px)] w-full object-cover"
-            />
-          )}
+          <div className="relative h-[min(78vh,640px)] w-full bg-black">
+            <video
+              className="h-full w-full object-cover"
+              autoPlay
+              muted
+              loop
+              playsInline
+              controls={false}
+              preload="auto"
+              poster="/image1.png"
+            >
+              <source src={HERO_VIDEO_SRC} type="video/mp4" />
+            </video>
+          </div>
           <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
-          {HERO_VIDEOS.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 gap-1.5">
-              {HERO_VIDEOS.map((_, i) => (
-                <button
-                  key={i}
-                  type="button"
-                  onClick={() => setHeroVideoIdx(i)}
-                  className={`h-2 rounded-full transition-all ${
-                    i === heroVideoIdx ? 'w-6 bg-white' : 'w-2 bg-white/50 hover:bg-white/70'
-                  }`}
-                  aria-label={`Play clip ${i + 1}`}
-                />
-              ))}
-            </div>
-          )}
           <div className="absolute inset-0 z-10 flex flex-col justify-end p-8 pb-10 md:p-12 md:pb-12">
             <p className="mb-3 text-[10px] font-semibold uppercase tracking-[0.25em] text-white/80">Official portal</p>
             <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-tight text-white md:text-4xl lg:text-5xl">
