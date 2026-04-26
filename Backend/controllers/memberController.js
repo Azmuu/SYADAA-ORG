@@ -8,6 +8,8 @@ const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 const BLOOD = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 const STATUSES = ["active", "pending", "inactive"];
+const FINANCE_SECTIONS = ["none", "members", "sports"];
+const PAYMENT_STATUSES = ["unpaid", "partial", "paid"];
 
 function loginPageUrl() {
   const direct = (process.env.FRONTEND_LOGIN_URL || "").trim();
@@ -88,11 +90,23 @@ function sanitizeMemberForCreate(raw) {
     out.finance_payment_method = String(b.finance_payment_method ?? "").trim();
     out.finance_account_ref = String(b.finance_account_ref ?? "").trim();
     out.finance_notes = String(b.finance_notes ?? "").trim();
+    const sec =
+      typeof b.finance_section === "string" && ["members", "sports"].includes(b.finance_section)
+        ? b.finance_section
+        : "members";
+    out.finance_section = sec;
+    const ps =
+      typeof b.finance_payment_status === "string" && PAYMENT_STATUSES.includes(b.finance_payment_status)
+        ? b.finance_payment_status
+        : "unpaid";
+    out.finance_payment_status = ps;
   } else {
     out.finance_monthly_fee = null;
     out.finance_payment_method = "";
     out.finance_account_ref = "";
     out.finance_notes = "";
+    out.finance_section = "none";
+    out.finance_payment_status = "unpaid";
   }
 
   return out;
@@ -261,23 +275,63 @@ export const updateMember = async (req, res) => {
   try {
     const { id } = req.params;
     if (!isValidId(id)) return res.status(400).json({ message: "Invalid id" });
+    const existing = await Member.findById(id);
+    if (!existing) return res.status(404).json({ message: "Member not found" });
+
     const body = { ...req.body };
-    body.is_finance_member = parseFinanceFlag(body.is_finance_member);
-    if (!body.is_finance_member) {
+    const hasFinanceFlag = Object.prototype.hasOwnProperty.call(body, "is_finance_member");
+    if (hasFinanceFlag) {
+      body.is_finance_member = parseFinanceFlag(body.is_finance_member);
+    } else {
+      delete body.is_finance_member;
+    }
+
+    const isFin = hasFinanceFlag ? Boolean(body.is_finance_member) : Boolean(existing.is_finance_member);
+
+    if (hasFinanceFlag && !body.is_finance_member) {
       body.finance_monthly_fee = null;
       body.finance_payment_method = "";
       body.finance_account_ref = "";
       body.finance_notes = "";
-    } else {
-      const fr = body.finance_monthly_fee;
-      if (fr == null || fr === "") {
-        body.finance_monthly_fee = null;
-      } else {
-        const n = Number(fr);
-        body.finance_monthly_fee = Number.isFinite(n) ? n : null;
+      body.finance_section = "none";
+      body.finance_payment_status = "unpaid";
+    } else if (isFin) {
+      if (Object.prototype.hasOwnProperty.call(body, "finance_monthly_fee")) {
+        const fr = body.finance_monthly_fee;
+        if (fr == null || fr === "") {
+          body.finance_monthly_fee = null;
+        } else {
+          const n = Number(fr);
+          body.finance_monthly_fee = Number.isFinite(n) ? n : null;
+        }
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "finance_section")) {
+        const sec =
+          typeof body.finance_section === "string" && FINANCE_SECTIONS.includes(body.finance_section)
+            ? body.finance_section
+            : "members";
+        body.finance_section = sec === "none" ? "members" : sec;
+      }
+      if (Object.prototype.hasOwnProperty.call(body, "finance_payment_status")) {
+        const ps =
+          typeof body.finance_payment_status === "string" && PAYMENT_STATUSES.includes(body.finance_payment_status)
+            ? body.finance_payment_status
+            : existing.finance_payment_status || "unpaid";
+        body.finance_payment_status = ps;
       }
     }
+
     if (body.email === "") body.email = "";
+
+    if (!isFin && !hasFinanceFlag) {
+      delete body.finance_monthly_fee;
+      delete body.finance_payment_status;
+      delete body.finance_section;
+      delete body.finance_payment_method;
+      delete body.finance_account_ref;
+      delete body.finance_notes;
+    }
+
     const data = await Member.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,

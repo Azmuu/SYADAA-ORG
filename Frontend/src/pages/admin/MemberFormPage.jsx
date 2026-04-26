@@ -14,6 +14,8 @@ const emptyForm = () => ({
   blood_type: "Unknown",
   title: "",
   is_finance_member: false,
+  finance_section: "members",
+  finance_payment_status: "unpaid",
   finance_monthly_fee: "",
   finance_payment_method: "",
   finance_account_ref: "",
@@ -50,6 +52,8 @@ const MemberFormPage = () => {
           blood_type: m.blood_type || "Unknown",
           title: m.title || "",
           is_finance_member: Boolean(m.is_finance_member),
+          finance_section: m.finance_section === "sports" ? "sports" : "members",
+          finance_payment_status: m.finance_payment_status || "unpaid",
           finance_monthly_fee: m.finance_monthly_fee != null ? String(m.finance_monthly_fee) : "",
           finance_payment_method: m.finance_payment_method || "",
           finance_account_ref: m.finance_account_ref || "",
@@ -97,6 +101,8 @@ const MemberFormPage = () => {
       blood_type: form.blood_type,
       title: form.title.trim(),
       is_finance_member: form.is_finance_member,
+      finance_section: form.is_finance_member ? form.finance_section : "none",
+      finance_payment_status: form.is_finance_member ? form.finance_payment_status : "unpaid",
       finance_payment_method: form.finance_payment_method.trim(),
       finance_account_ref: form.finance_account_ref.trim(),
       finance_notes: form.finance_notes.trim(),
@@ -134,12 +140,16 @@ const MemberFormPage = () => {
       setError("Email is required. A member login is created and credentials are emailed automatically.");
       return;
     }
+    if (form.is_finance_member && !["members", "sports"].includes(form.finance_section)) {
+      setError("Select a finance section: Members finance or Sports finance.");
+      return;
+    }
     setSaving(true);
     try {
       const payload = buildPayload();
       if (isEdit) {
         await membersApi.update(id, payload);
-        navigate("/admin/members");
+        navigate("/admin/members/all");
       } else {
         const data = await membersApi.create(payload);
         if (import.meta.env.DEV && (data.portal?.temporaryPassword || data.portal?.etherealPreviewUrl)) {
@@ -152,7 +162,7 @@ const MemberFormPage = () => {
             data.portal?.etherealPreviewUrl ? `\n  Ethereal: ${data.portal.etherealPreviewUrl}` : ""
           );
         }
-        navigate("/admin/members", { state: { portalNotice: data.portal || null } });
+        navigate("/admin/members/all", { state: { portalNotice: data.portal || null } });
       }
     } catch (err) {
       setError(err.message || "Save failed");
@@ -174,7 +184,7 @@ const MemberFormPage = () => {
     <div className="mx-auto max-w-3xl pb-16 font-sans text-gray-800">
       <div className="mb-8">
         <Link
-          to="/admin/members"
+          to="/admin/members/all"
           className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"
         >
           <ArrowLeft size={16} />
@@ -362,6 +372,30 @@ const MemberFormPage = () => {
           {form.is_finance_member && (
             <div className="mt-6 grid gap-4 border-t border-brand/10 pt-6 sm:grid-cols-2">
               <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-500">Finance section *</label>
+                <select
+                  value={form.finance_section}
+                  onChange={(e) => set("finance_section", e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                >
+                  <option value="members">Members finance (general org)</option>
+                  <option value="sports">Sports finance (sports program)</option>
+                </select>
+                <p className="mt-1 text-[11px] text-gray-500">Assign fees to the correct sub-ledger in Financials.</p>
+              </div>
+              <div>
+                <label className="mb-1.5 block text-xs font-semibold text-gray-500">Payment status</label>
+                <select
+                  value={form.finance_payment_status}
+                  onChange={(e) => set("finance_payment_status", e.target.value)}
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
+                >
+                  <option value="unpaid">Unpaid</option>
+                  <option value="partial">Partial</option>
+                  <option value="paid">Paid</option>
+                </select>
+              </div>
+              <div>
                 <label className="mb-1.5 block text-xs font-semibold text-gray-500">Monthly fee / contribution</label>
                 <input
                   type="number"
@@ -413,7 +447,7 @@ const MemberFormPage = () => {
 
         <div className="flex flex-wrap items-center justify-end gap-3 border-t border-gray-100 pt-6">
           <Link
-            to="/admin/members"
+            to="/admin/members/all"
             className="rounded-xl border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50"
           >
             Cancel

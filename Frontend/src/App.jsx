@@ -20,6 +20,8 @@ import MemberFormPage from './pages/admin/MemberFormPage';
 import Finance from './pages/admin/Finance';
 import Reports from './pages/admin/Reports';
 import Resources from './pages/admin/Resources';
+import Sports from './pages/admin/Sports';
+import SportMemberFormPage from './pages/admin/SportMemberFormPage';
 import PortalLayout from './layouts/PortalLayout';
 import PortalDashboard from './pages/portal/PortalDashboard';
 
@@ -59,9 +61,15 @@ function App() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="members/new" element={<MemberFormPage />} />
+          <Route path="members/all" element={<Members list="all" />} />
+          <Route path="members/finance" element={<Members list="finance" />} />
           <Route path="members/:id/edit" element={<MemberFormPage />} />
-          <Route path="members" element={<Members />} />
-          <Route path="finance" element={<Finance />} />
+          <Route path="members" element={<Navigate to="/admin/members/all" replace />} />
+          <Route path="sports/new" element={<SportMemberFormPage />} />
+          <Route path="sports/:id/edit" element={<SportMemberFormPage />} />
+          <Route path="sports" element={<Sports />} />
+          <Route path="finance" element={<Navigate to="/admin/finance/members" replace />} />
+          <Route path="finance/:section" element={<Finance />} />
           <Route path="reports" element={<Reports />} />
           <Route path="resources" element={<Resources />} />
         </Route>

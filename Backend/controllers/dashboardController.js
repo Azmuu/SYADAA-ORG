@@ -1,10 +1,11 @@
 import Member from "../models/Member.js";
 import Financial from "../models/Financial.js";
 import Report from "../models/Report.js";
+import SportMember from "../models/SportMember.js";
 
 export const getSummary = async (req, res) => {
   try {
-    const [memberCount, pendingMembers, incomeAgg, expenseAgg, reportCount] = await Promise.all([
+    const [memberCount, pendingMembers, incomeAgg, expenseAgg, reportCount, sportMemberCount, activeSportMembers] = await Promise.all([
       Member.countDocuments(),
       Member.countDocuments({ status: "pending" }),
       Financial.aggregate([
@@ -16,6 +17,8 @@ export const getSummary = async (req, res) => {
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
       Report.countDocuments(),
+      SportMember.countDocuments(),
+      SportMember.countDocuments({ status: "active" }),
     ]);
 
     const income = incomeAgg[0]?.total || 0;
@@ -28,6 +31,8 @@ export const getSummary = async (req, res) => {
       expense,
       balance: income - expense,
       reportCount,
+      sportMemberCount,
+      activeSportMembers,
     });
   } catch (e) {
     res.status(500).json({ message: e.message });

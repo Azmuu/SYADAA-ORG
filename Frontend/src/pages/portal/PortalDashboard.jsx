@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Users, Search, Loader2, LayoutDashboard } from "lucide-react";
+import { Users, Search, Loader2, LayoutDashboard, FileSpreadsheet } from "lucide-react";
 import { getPortalMembers } from "../../services/portalApi";
+import { exportToExcel } from "../../lib/exportExcel";
 
 const BLOOD_TYPES = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-", "Unknown"];
 
@@ -49,6 +50,22 @@ const PortalDashboard = () => {
     }
   };
 
+  const exportDirectoryExcel = () => {
+    exportToExcel(
+      rows.map((m) => ({
+        Name: m.name || "",
+        Phone: m.phone || "",
+        Email: m.email || "",
+        Title: m.title || "",
+        "Blood type": m.blood_type || "",
+        Program: m.program || "",
+        Status: m.status || "",
+        Address: m.address || "",
+      })),
+      { fileName: "member-directory", sheetName: "Directory" }
+    );
+  };
+
   return (
     <div>
       <div className="mb-8">
@@ -87,9 +104,20 @@ const PortalDashboard = () => {
             ))}
           </select>
         </div>
-        <p className="text-xs font-medium text-gray-400 sm:ml-auto sm:self-end">
-          {rows.length} member{rows.length !== 1 ? "s" : ""}
-        </p>
+        <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:ml-auto sm:w-auto sm:self-end">
+          <p className="text-xs font-medium text-gray-400">
+            {rows.length} member{rows.length !== 1 ? "s" : ""}
+          </p>
+          <button
+            type="button"
+            onClick={exportDirectoryExcel}
+            disabled={loading || rows.length === 0}
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FileSpreadsheet size={14} />
+            Export Excel
+          </button>
+        </div>
       </div>
 
       {error && (

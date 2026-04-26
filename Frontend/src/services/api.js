@@ -15,8 +15,13 @@ export const memberService = {
 };
 
 export const financeService = {
-  getOverview: () => apiRequest("/finance/overview"),
-  getTransactions: (limit = 50) => apiRequest(`/finance/transactions?limit=${limit}`),
+  getOverview: (sector) =>
+    apiRequest(`/finance/overview${sector && sector !== "all" ? `?sector=${encodeURIComponent(sector)}` : ""}`),
+  getTransactions: (limit = 50, sector) => {
+    const p = new URLSearchParams({ limit: String(limit) });
+    if (sector && sector !== "all") p.set("sector", sector);
+    return apiRequest(`/finance/transactions?${p.toString()}`);
+  },
 };
 
 /** @deprecated use apiRequest — kept for compatibility */

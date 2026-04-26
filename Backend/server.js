@@ -40,6 +40,7 @@ import financeRoutes from "./routes/financeRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import portalRoutes from "./routes/portalRoutes.js";
+import sportMemberRoutes from "./routes/sportMemberRoutes.js";
 
 app.use("/api/auth", authRoutes);
 app.use("/api/portal", portalRoutes);
@@ -47,6 +48,7 @@ app.use("/api/members", memberRoutes);
 app.use("/api/finance", financeRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/sports-members", sportMemberRoutes);
 
 // Home route
 app.get("/", (req, res) => {

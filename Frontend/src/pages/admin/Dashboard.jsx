@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   Users,
   Wallet,
+  Banknote,
+  Dumbbell,
   Search,
   Bell,
   Settings,
@@ -124,6 +126,13 @@ const Dashboard = () => {
               trend={loading ? "" : `In ${fmtMoney(summary?.income || 0)} · Out ${fmtMoney(summary?.expense || 0)}`}
               trendUp={summary?.balance >= 0 ? true : false}
             />
+            <StatCard
+              icon={<Dumbbell size={20} className="text-indigo-700" />}
+              label="Sports members"
+              value={loading ? "…" : String(summary?.sportMemberCount ?? 0)}
+              trend={loading ? "" : `${summary?.activeSportMembers ?? 0} active`}
+              trendUp={null}
+            />
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-8 shadow-sm">
@@ -142,18 +151,32 @@ const Dashboard = () => {
                 Register member
               </Link>
               <Link
-                to="/admin/members"
+                to="/admin/members/all"
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
               >
                 <Users size={18} />
-                Member directory
+                View all members
               </Link>
               <Link
-                to="/admin/finance"
+                to="/admin/members/finance"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                <Banknote size={18} />
+                Finance members
+              </Link>
+              <Link
+                to="/admin/finance/members"
                 className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
               >
                 <Wallet size={18} />
                 Finance
+              </Link>
+              <Link
+                to="/admin/sports/new"
+                className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-bold text-gray-700 hover:bg-gray-50"
+              >
+                <Dumbbell size={18} />
+                Add sports member
               </Link>
               <Link
                 to="/admin/reports"
@@ -227,6 +250,13 @@ const Dashboard = () => {
                 sub={`${summary?.reportCount ?? "—"} documents in archive`}
                 time="LIVE DATA"
               />
+              <ActivityRow
+                icon={<Dumbbell size={16} />}
+                color="bg-indigo-50 text-indigo-600"
+                title="Sports"
+                sub={`${summary?.sportMemberCount ?? "—"} sports members · ${summary?.activeSportMembers ?? "—"} active`}
+                time="LIVE DATA"
+              />
             </div>
 
             <div className="mt-10 rounded-xl border border-gray-100 bg-gray-50 p-6 text-center">
@@ -238,7 +268,7 @@ const Dashboard = () => {
                 {summary?.pendingMembers ?? 0} member(s) with status &quot;pending&quot; in the directory.
               </p>
               <Link
-                to="/admin/members"
+                to="/admin/members/all"
                 className="block w-full rounded-lg border border-gray-200 bg-white py-2.5 text-xs font-bold shadow-sm hover:bg-gray-50"
               >
                 Open directory

@@ -11,6 +11,7 @@ import {
   Activity,
 } from "lucide-react";
 import { reportsApi } from "../../services/reportsApi";
+import { exportToExcel } from "../../lib/exportExcel";
 
 const statusUi = {
   verified: { label: "Verified", className: "text-green-600 bg-green-50" },
@@ -80,6 +81,33 @@ const Reports = () => {
 
   const pending = rows.filter((r) => r.status === "processing").length;
 
+  const statusLabel = (s) => statusUi[s]?.label || s || "—";
+
+  const exportReportsExcel = () => {
+    exportToExcel(
+      filtered.map((r) => ({
+        "Report name": (r.report_name || "").trim() || "Untitled",
+        Category: r.category || "",
+        Summary: (r.summary || "").trim(),
+        Created: r.createdAt ? new Date(r.createdAt).toLocaleString() : "",
+        Status: statusLabel(r.status),
+      })),
+      { fileName: "reports-archive", sheetName: "Reports" }
+    );
+  };
+
+  const exportActivityExcel = () => {
+    exportToExcel(
+      activity.map((a) => ({
+        Kind: a.kind === "financial" ? "Finance" : a.kind === "report" ? "Report" : a.kind || "",
+        Title: a.title || "",
+        Detail: a.subtitle || "",
+        When: a.at ? new Date(a.at).toLocaleString() : "",
+      })),
+      { fileName: "activity-feed", sheetName: "Activity" }
+    );
+  };
+
   const onDelete = async (id, name) => {
     if (!window.confirm(`Delete report "${name}"?`)) return;
     try {
@@ -127,10 +155,12 @@ const Reports = () => {
         <div className="flex flex-wrap gap-3">
           <button
             type="button"
-            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50"
+            onClick={exportReportsExcel}
+            disabled={loading || filtered.length === 0}
+            className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Download size={16} />
-            Export all
+            Export Excel
           </button>
           <button
             type="button"
@@ -148,18 +178,29 @@ const Reports = () => {
       )}
 
       <div className="mb-6 overflow-hidden rounded-xl border border-gray-100 bg-white p-6 shadow-sm">
-        <div className="mb-4 flex items-center justify-between gap-4">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <Activity className="size-5 text-brand" />
             <h3 className="font-bold text-gray-800">Live activity</h3>
           </div>
-          <button
-            type="button"
-            onClick={() => loadActivity()}
-            className="text-xs font-bold text-brand hover:underline"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={exportActivityExcel}
+              disabled={activityLoading || activity.length === 0}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-bold text-gray-700 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Download size={14} />
+              Export Excel
+            </button>
+            <button
+              type="button"
+              onClick={() => loadActivity()}
+              className="text-xs font-bold text-brand hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
         {activityErr && <p className="mb-3 text-sm text-red-600">{activityErr}</p>}
         {activityLoading && (

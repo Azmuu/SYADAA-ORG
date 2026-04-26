@@ -13,13 +13,17 @@ import {
   ZoomIn,
   ZoomOut,
   Mail,
+  FileSpreadsheet,
 } from "lucide-react";
 import { membersApi } from "../../services/membersApi";
+import { exportToExcel } from "../../lib/exportExcel";
 
 /** Smallest value = most zoomed out (includes an extra step vs typical 3-stop controls). */
 const PHOTO_ZOOM_SCALES = [1, 0.88, 0.76, 0.64, 0.52];
 
-const Members = () => {
+/** @param {{ list?: "all" | "finance" }} props */
+const Members = ({ list = "all" }) => {
+  const financeOnly = list === "finance";
   const location = useLocation();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
@@ -33,6 +37,7 @@ const Members = () => {
   const [portalCredLoading, setPortalCredLoading] = useState(false);
   const [portalCredError, setPortalCredError] = useState("");
   const [portalCredResult, setPortalCredResult] = useState(null);
+  const [payUpdatingId, setPayUpdatingId] = useState(null);
 
   useEffect(() => {
     if (detailMember) setPhotoZoomIdx(0);
@@ -79,14 +84,35 @@ const Members = () => {
     }
   }, [location.pathname, location.state, navigate]);
 
+  const financeMembers = useMemo(() => rows.filter((m) => m.is_finance_member), [rows]);
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter((m) => {
-      const blob = [m.name, m.email, m.phone, m.title, m.address, m.program].filter(Boolean).join(" ").toLowerCase();
-      return blob.includes(q);
+    const pool = financeOnly ? financeMembers : rows;
+    if (!q) return pool;
+    return pool.filter((m) => {
+      const base = [m.name, m.email, m.phone, m.title, m.address, m.program];
+      if (financeOnly) {
+        base.push(m.finance_section, m.finance_payment_status);
+      }
+      return base.filter(Boolean).join(" ").toLowerCase().includes(q);
     });
-  }, [rows, query]);
+  }, [rows, financeMembers, query, financeOnly]);
+
+  const updatePaymentStatus = async (e, id, status) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setPayUpdatingId(id);
+    try {
+      const updated = await membersApi.update(id, { finance_payment_status: status });
+      setRows((r) => r.map((x) => (x._id === id ? { ...x, ...updated } : x)));
+      setDetailMember((d) => (d && d._id === id ? { ...d, ...updated } : d));
+    } catch (err) {
+      alert(err.message || "Could not update payment");
+    } finally {
+      setPayUpdatingId(null);
+    }
+  };
 
   const onDelete = async (id, name) => {
     if (!window.confirm(`Delete member "${name}"? This cannot be undone.`)) return;
@@ -100,6 +126,18 @@ const Members = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const payStatusLabel = (s) => {
+    if (s === "paid") return "Paid";
+    if (s === "partial") return "Partial";
+    return "Not paid";
+  };
+
+  const payStatusClass = (s) => {
+    if (s === "paid") return "bg-emerald-100 text-emerald-800";
+    if (s === "partial") return "bg-amber-100 text-amber-800";
+    return "bg-gray-100 text-gray-600";
   };
 
   const statusStyle = (s) => {
@@ -123,6 +161,36 @@ const Members = () => {
     if (v == null || v === "") return "—";
     const d = new Date(v);
     return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  };
+
+  const exportListExcel = () => {
+    if (financeOnly) {
+      exportToExcel(
+        filtered.map((m) => ({
+          Name: m.name || "",
+          Phone: m.phone || "",
+          Email: m.email || "",
+          Address: m.address || "",
+          "Fin. section": m.finance_section === "sports" ? "Sports" : "Members",
+          "Payment status": payStatusLabel(m.finance_payment_status),
+        })),
+        { fileName: "finance-members", sheetName: "Finance members" }
+      );
+    } else {
+      exportToExcel(
+        filtered.map((m) => ({
+          Name: m.name || "",
+          Phone: m.phone || "",
+          Email: m.email || "",
+          Address: m.address || "",
+          Title: m.title || "",
+          "Blood type": m.blood_type || "",
+          "Finance member": m.is_finance_member ? "Yes" : "No",
+          Status: m.status || "",
+        })),
+        { fileName: "all-members", sheetName: "Members" }
+      );
+    }
   };
 
   const sendPortalCredentials = async () => {
@@ -154,12 +222,25 @@ const Members = () => {
     <div className="min-h-screen bg-[#F9FAFB] pb-12 font-sans text-gray-800">
       <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
-          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand">Member directory</p>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Members</h1>
-          <p className="mt-2 max-w-xl text-sm text-gray-500">
-            View, update, or remove member records. Registering a new member creates a portal login and emails a
-            temporary password to their address.
-          </p>
+          {financeOnly ? (
+            <>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand">Finance members</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">Members with finance</h1>
+              <p className="mt-2 max-w-xl text-sm text-gray-500">
+                Only members who have finance enabled. Set each row to <strong className="font-medium text-gray-700">Paid</strong>,{" "}
+                <strong className="font-medium text-gray-700">Partial</strong>, or <strong className="font-medium text-gray-700">Not paid</strong>.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-brand">Member directory</p>
+              <h1 className="text-3xl font-bold tracking-tight text-gray-900">All members</h1>
+              <p className="mt-2 max-w-xl text-sm text-gray-500">
+                Every registered member. Use <Link to="/admin/members/finance" className="font-semibold text-brand hover:underline">Finance members</Link> for
+                payment status and quick actions.
+              </p>
+            </>
+          )}
         </div>
         <div className="flex flex-wrap gap-2">
           <button
@@ -186,13 +267,19 @@ const Members = () => {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name, phone, email, title…"
+            placeholder={financeOnly ? "Search (name, phone, email)…" : "Search (name, phone, email, title…)…"}
             className="w-full rounded-xl border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
         </div>
-        <p className="text-xs font-medium text-gray-400">
-          {filtered.length} of {rows.length} shown
-        </p>
+        <button
+          type="button"
+          onClick={exportListExcel}
+          disabled={loading || filtered.length === 0}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <FileSpreadsheet size={16} />
+          Export Excel
+        </button>
       </div>
 
       {portalNotice && (
@@ -280,118 +367,252 @@ const Members = () => {
 
       <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[880px] text-left text-sm">
-            <thead className="border-b border-gray-100 bg-gray-50/80">
-              <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                <th className="px-4 py-3 pl-6">Photo</th>
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Phone</th>
-                <th className="px-4 py-3">Email</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Blood</th>
-                <th className="px-4 py-3">Finance</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3 pr-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading && (
-                <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
-                    <Loader2 className="mx-auto mb-2 size-6 animate-spin text-brand" />
-                    Loading members…
-                  </td>
+          {financeOnly ? (
+            <table className="w-full min-w-[880px] text-left text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/80">
+                <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  <th className="px-4 py-3 pl-6">Photo</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Phone</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Fin. section</th>
+                  <th className="px-4 py-3">Payment</th>
+                  <th className="px-4 py-3 min-w-[200px]">Set payment</th>
+                  <th className="px-4 py-3 pr-6 text-right">Actions</th>
                 </tr>
-              )}
-              {!loading && filtered.length === 0 && (
-                <tr>
-                  <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
-                    No members found.{" "}
-                    <Link to="/admin/members/new" className="font-semibold text-brand hover:underline">
-                      Register the first member
-                    </Link>
-                    .
-                  </td>
-                </tr>
-              )}
-              {!loading &&
-                filtered.map((m) => (
-                  <tr
-                    key={m._id}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => setDetailMember(m)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        setDetailMember(m);
-                      }
-                    }}
-                    className="cursor-pointer hover:bg-gray-50/80"
-                  >
-                    <td className="px-4 py-3 pl-6">
-                      <img
-                        src={
-                          m.picture ||
-                          `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name || "?")}&background=e8f5ef&color=0d7a52`
-                        }
-                        alt=""
-                        className="size-10 rounded-xl border border-gray-100 object-cover"
-                      />
-                    </td>
-                    <td className="px-4 py-3">
-                      <p className="font-semibold text-gray-900">{m.name || "—"}</p>
-                      <p className="text-xs text-gray-400 line-clamp-1">{m.address || m.program || ""}</p>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-gray-700">{m.phone || "—"}</td>
-                    <td className="max-w-[140px] truncate px-4 py-3 text-gray-500">{m.email || "—"}</td>
-                    <td className="px-4 py-3 text-gray-700">{m.title || "—"}</td>
-                    <td className="px-4 py-3 text-gray-600">{m.blood_type || "—"}</td>
-                    <td className="px-4 py-3">
-                      {m.is_finance_member ? (
-                        <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase text-brand">
-                          <Wallet size={12} />
-                          Yes
-                        </span>
-                      ) : (
-                        <span className="text-xs text-gray-400">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${statusStyle(m.status)}`}>
-                        {m.status || "pending"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
-                      <div className="flex justify-end gap-1">
-                        <Link
-                          to={`/admin/members/${m._id}/edit`}
-                          className="inline-flex rounded-lg p-2 text-brand hover:bg-brand-soft"
-                          title="Edit"
-                        >
-                          <Pencil size={18} />
-                        </Link>
-                        <button
-                          type="button"
-                          title="Delete"
-                          disabled={deletingId === m._id}
-                          onClick={() => onDelete(m._id, m.name)}
-                          className="inline-flex rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
-                        >
-                          {deletingId === m._id ? <Loader2 className="size-[18px] animate-spin" /> : <Trash2 size={18} />}
-                        </button>
-                      </div>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading && (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center text-gray-500">
+                      <Loader2 className="mx-auto mb-2 size-6 animate-spin text-brand" />
+                      Loading…
                     </td>
                   </tr>
-                ))}
-            </tbody>
-          </table>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={8} className="px-6 py-16 text-center text-gray-500">
+                      No members with finance yet. Enable <strong className="font-medium text-gray-700">Finance member</strong> when
+                      registering or editing, or{" "}
+                      <Link to="/admin/members/new" className="font-semibold text-brand hover:underline">
+                        register a member
+                      </Link>
+                      .
+                    </td>
+                  </tr>
+                )}
+                {!loading &&
+                  filtered.map((m) => (
+                    <tr
+                      key={m._id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setDetailMember(m)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setDetailMember(m);
+                        }
+                      }}
+                      className="cursor-pointer hover:bg-gray-50/80"
+                    >
+                      <td className="px-4 py-3 pl-6">
+                        <img
+                          src={
+                            m.picture ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name || "?")}&background=e8f5ef&color=0d7a52`
+                          }
+                          alt=""
+                          className="size-10 rounded-xl border border-gray-100 object-cover"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-900">{m.name || "—"}</p>
+                        <p className="text-xs text-gray-400 line-clamp-1">{m.address || m.program || ""}</p>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-700">{m.phone || "—"}</td>
+                      <td className="max-w-[140px] truncate px-4 py-3 text-gray-500">{m.email || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-gray-600">
+                        {m.finance_section === "sports" ? "Sports" : "Members"}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`inline-block rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase ${payStatusClass(
+                            m.finance_payment_status
+                          )}`}
+                        >
+                          {payStatusLabel(m.finance_payment_status)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex flex-wrap gap-1">
+                          <button
+                            type="button"
+                            disabled={payUpdatingId === m._id}
+                            onClick={(e) => updatePaymentStatus(e, m._id, "paid")}
+                            className="rounded-lg bg-emerald-600 px-2 py-1 text-[10px] font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                          >
+                            Paid
+                          </button>
+                          <button
+                            type="button"
+                            disabled={payUpdatingId === m._id}
+                            onClick={(e) => updatePaymentStatus(e, m._id, "partial")}
+                            className="rounded-lg border border-amber-300 bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-900 hover:bg-amber-100 disabled:opacity-50"
+                          >
+                            Partial
+                          </button>
+                          <button
+                            type="button"
+                            disabled={payUpdatingId === m._id}
+                            onClick={(e) => updatePaymentStatus(e, m._id, "unpaid")}
+                            className="rounded-lg border border-gray-200 bg-white px-2 py-1 text-[10px] font-bold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                          >
+                            Not paid
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1">
+                          <Link
+                            to={`/admin/members/${m._id}/edit`}
+                            className="inline-flex rounded-lg p-2 text-brand hover:bg-brand-soft"
+                            title="Edit"
+                          >
+                            <Pencil size={18} />
+                          </Link>
+                          <button
+                            type="button"
+                            title="Delete"
+                            disabled={deletingId === m._id}
+                            onClick={() => onDelete(m._id, m.name)}
+                            className="inline-flex rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deletingId === m._id ? <Loader2 className="size-[18px] animate-spin" /> : <Trash2 size={18} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full min-w-[960px] text-left text-sm">
+              <thead className="border-b border-gray-100 bg-gray-50/80">
+                <tr className="text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                  <th className="px-4 py-3 pl-6">Photo</th>
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Phone</th>
+                  <th className="px-4 py-3">Email</th>
+                  <th className="px-4 py-3">Title</th>
+                  <th className="px-4 py-3">Blood</th>
+                  <th className="px-4 py-3">Finance</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3 pr-6 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {loading && (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
+                      <Loader2 className="mx-auto mb-2 size-6 animate-spin text-brand" />
+                      Loading members…
+                    </td>
+                  </tr>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-6 py-16 text-center text-gray-500">
+                      No members found.{" "}
+                      <Link to="/admin/members/new" className="font-semibold text-brand hover:underline">
+                        Register the first member
+                      </Link>
+                      .
+                    </td>
+                  </tr>
+                )}
+                {!loading &&
+                  filtered.map((m) => (
+                    <tr
+                      key={m._id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => setDetailMember(m)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setDetailMember(m);
+                        }
+                      }}
+                      className="cursor-pointer hover:bg-gray-50/80"
+                    >
+                      <td className="px-4 py-3 pl-6">
+                        <img
+                          src={
+                            m.picture ||
+                            `https://ui-avatars.com/api/?name=${encodeURIComponent(m.name || "?")}&background=e8f5ef&color=0d7a52`
+                          }
+                          alt=""
+                          className="size-10 rounded-xl border border-gray-100 object-cover"
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-semibold text-gray-900">{m.name || "—"}</p>
+                        <p className="text-xs text-gray-400 line-clamp-1">{m.address || m.program || ""}</p>
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-700">{m.phone || "—"}</td>
+                      <td className="max-w-[140px] truncate px-4 py-3 text-gray-500">{m.email || "—"}</td>
+                      <td className="px-4 py-3 text-gray-700">{m.title || "—"}</td>
+                      <td className="px-4 py-3 text-gray-600">{m.blood_type || "—"}</td>
+                      <td className="px-4 py-3">
+                        {m.is_finance_member ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-brand-soft px-2 py-0.5 text-[10px] font-bold uppercase text-brand">
+                            <Wallet size={12} />
+                            Yes
+                          </span>
+                        ) : (
+                          <span className="text-xs text-gray-400">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold uppercase ${statusStyle(m.status)}`}>
+                          {m.status || "pending"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 pr-6 text-right" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-1">
+                          <Link
+                            to={`/admin/members/${m._id}/edit`}
+                            className="inline-flex rounded-lg p-2 text-brand hover:bg-brand-soft"
+                            title="Edit"
+                          >
+                            <Pencil size={18} />
+                          </Link>
+                          <button
+                            type="button"
+                            title="Delete"
+                            disabled={deletingId === m._id}
+                            onClick={() => onDelete(m._id, m.name)}
+                            className="inline-flex rounded-lg p-2 text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            {deletingId === m._id ? <Loader2 className="size-[18px] animate-spin" /> : <Trash2 size={18} />}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 
       <div className="mt-8 flex items-center gap-2 rounded-xl border border-gray-100 bg-white px-4 py-3 text-xs text-gray-500">
         <Users size={16} className="text-brand" />
-        Tip: with <code className="text-[10px]">MAIL_USE_ETHEREAL=true</code>, open the Ethereal link after signup to see the test “email”. Set <code className="text-[10px]">FRONTEND_LOGIN_URL</code> in Backend <code className="text-[10px]">.env</code> to match your Vite port. Click a row for details and “New password & email”.
+        {financeOnly
+          ? "Click a row for full details, portal reset, and payment tools."
+          : "Click a row for details. For fee payment actions (Paid / Partial / Not paid), open Finance members in the sidebar."}
       </div>
 
       {detailMember && (
@@ -470,6 +691,20 @@ const Members = () => {
                 <MemberField label="Finance member" value={detailMember.is_finance_member ? "Yes" : "No"} />
                 {detailMember.is_finance_member && (
                   <>
+                    <MemberField
+                      label="Finance section"
+                      value={
+                        detailMember.finance_section === "sports"
+                          ? "Sports finance"
+                          : detailMember.finance_section === "members"
+                            ? "Members finance"
+                            : "—"
+                      }
+                    />
+                    <MemberField
+                      label="Payment status"
+                      value={payStatusLabel(detailMember.finance_payment_status)}
+                    />
                     <MemberField
                       label="Monthly fee"
                       value={

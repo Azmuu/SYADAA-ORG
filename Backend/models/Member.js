@@ -13,6 +13,18 @@ const memberSchema = new mongoose.Schema(
     blood_type: { type: String, enum: BLOOD, default: "Unknown" },
     title: { type: String, trim: true, default: "" },
     is_finance_member: { type: Boolean, default: false },
+    /** Which finance sub-ledger this member is tracked under (only when is_finance_member is true) */
+    finance_section: {
+      type: String,
+      enum: ["none", "members", "sports"],
+      default: "none",
+    },
+    /** Fee payment progress for org finance (only when is_finance_member is true) */
+    finance_payment_status: {
+      type: String,
+      enum: ["unpaid", "partial", "paid"],
+      default: "unpaid",
+    },
     finance_monthly_fee: { type: Number, default: null },
     finance_payment_method: { type: String, trim: true, default: "" },
     finance_account_ref: { type: String, trim: true, default: "" },

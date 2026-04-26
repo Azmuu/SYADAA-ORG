@@ -10,6 +10,12 @@ const financialSchema = new mongoose.Schema(
       enum: ["income", "expense"],
     },
     date: Date,
+    /** Sub-ledger: general members vs sports program */
+    sector: {
+      type: String,
+      enum: ["members", "sports"],
+      default: "members",
+    },
   },
   { timestamps: true }
 );

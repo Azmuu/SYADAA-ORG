@@ -2,17 +2,23 @@ import React, { useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import logoMark from '../assets/logo.jpeg';
+import { useTheme } from '../context/ThemeContext';
 
-const navClass = ({ isActive }) =>
+const navClass = (isDark) => ({ isActive }) =>
   `text-sm font-medium tracking-tight transition-colors relative py-1 ${
-    isActive ? 'text-brand' : 'text-neutral-500 hover:text-brand'
+    isActive ? 'text-brand' : isDark ? 'text-gray-300 hover:text-brand' : 'text-neutral-500 hover:text-brand'
   }`;
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const { isDark } = useTheme();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-brand/10 bg-white/95 backdrop-blur-md">
+    <header
+      className={`sticky top-0 z-50 border-b backdrop-blur-md ${
+        isDark ? 'border-gray-800 bg-gray-900/95' : 'border-brand/10 bg-white/95'
+      }`}
+    >
       <nav className="mx-auto flex h-[72px] max-w-6xl items-center justify-between px-5 lg:px-8">
         <Link to="/" className="flex shrink-0 items-center gap-2.5" onClick={() => setOpen(false)}>
           <img
@@ -26,7 +32,7 @@ const Navbar = () => {
         </Link>
 
         <div className="hidden items-center gap-10 md:flex">
-          <NavLink to="/" end className={navClass}>
+          <NavLink to="/" end className={navClass(isDark)}>
             {({ isActive }) => (
               <span className="relative inline-block py-1">
                 Home
@@ -36,7 +42,7 @@ const Navbar = () => {
               </span>
             )}
           </NavLink>
-          <NavLink to="/about" className={navClass}>
+          <NavLink to="/about" className={navClass(isDark)}>
             {({ isActive }) => (
               <span className="relative inline-block py-1">
                 About
@@ -48,11 +54,13 @@ const Navbar = () => {
           </NavLink>
           <Link
             to="/#activities"
-            className="text-sm font-medium tracking-tight text-neutral-500 transition-colors hover:text-brand"
+            className={`text-sm font-medium tracking-tight transition-colors hover:text-brand ${
+              isDark ? 'text-gray-300' : 'text-neutral-500'
+            }`}
           >
             Activities
           </Link>
-          <NavLink to="/contact" className={navClass}>
+          <NavLink to="/contact" className={navClass(isDark)}>
             {({ isActive }) => (
               <span className="relative inline-block py-1">
                 Contact
@@ -65,7 +73,10 @@ const Navbar = () => {
         </div>
 
         <div className="hidden items-center gap-6 md:flex">
-          <Link to="/login" className="text-sm font-medium text-neutral-600 transition-colors hover:text-brand">
+          <Link
+            to="/login"
+            className={`text-sm font-medium transition-colors hover:text-brand ${isDark ? 'text-gray-300' : 'text-neutral-600'}`}
+          >
             Login
           </Link>
           <Link
@@ -78,7 +89,7 @@ const Navbar = () => {
 
         <button
           type="button"
-          className="flex rounded-full p-2 text-neutral-700 md:hidden"
+          className={`flex rounded-full p-2 md:hidden ${isDark ? 'text-gray-200' : 'text-neutral-700'}`}
           aria-label={open ? 'Close menu' : 'Open menu'}
           onClick={() => setOpen((v) => !v)}
         >
@@ -87,21 +98,25 @@ const Navbar = () => {
       </nav>
 
       {open && (
-        <div className="border-t border-brand/10 bg-white px-5 py-4 md:hidden">
+        <div
+          className={`border-t px-5 py-4 md:hidden ${
+            isDark ? 'border-gray-800 bg-gray-900 text-gray-100' : 'border-brand/10 bg-white'
+          }`}
+        >
           <div className="flex flex-col gap-4">
-            <Link to="/" className="text-sm font-medium text-neutral-800" onClick={() => setOpen(false)}>
+            <Link to="/" className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-neutral-800'}`} onClick={() => setOpen(false)}>
               Home
             </Link>
-            <Link to="/about" className="text-sm font-medium text-neutral-800" onClick={() => setOpen(false)}>
+            <Link to="/about" className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-neutral-800'}`} onClick={() => setOpen(false)}>
               About
             </Link>
-            <Link to="/#activities" className="text-sm font-medium text-neutral-800" onClick={() => setOpen(false)}>
+            <Link to="/#activities" className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-neutral-800'}`} onClick={() => setOpen(false)}>
               Activities
             </Link>
-            <Link to="/contact" className="text-sm font-medium text-neutral-800" onClick={() => setOpen(false)}>
+            <Link to="/contact" className={`text-sm font-medium ${isDark ? 'text-gray-100' : 'text-neutral-800'}`} onClick={() => setOpen(false)}>
               Contact
             </Link>
-            <Link to="/login" className="text-sm font-medium text-neutral-600" onClick={() => setOpen(false)}>
+            <Link to="/login" className={`text-sm font-medium ${isDark ? 'text-gray-300' : 'text-neutral-600'}`} onClick={() => setOpen(false)}>
               Login
             </Link>
             <Link

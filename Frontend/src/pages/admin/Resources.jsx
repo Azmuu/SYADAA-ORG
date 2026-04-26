@@ -6,7 +6,7 @@ const cards = [
   {
     title: "Financials",
     description: "Income, expenses, and ledger entries from your database.",
-    to: "/admin/finance",
+    to: "/admin/finance/members",
     icon: Wallet,
   },
   {
@@ -16,9 +16,9 @@ const cards = [
     icon: FileText,
   },
   {
-    title: "Member directory",
-    description: "All members stored in the system.",
-    to: "/admin/members",
+    title: "All members",
+    description: "Full directory. For fee payments, open Finance → Finance members.",
+    to: "/admin/members/all",
     icon: Users,
   },
   {
