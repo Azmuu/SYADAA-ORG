@@ -1,5 +1,4 @@
 import * as XLSX from "xlsx";
-
 /**
  * Download rows as an .xlsx file. Each object becomes a row; keys are column headers.
  * @param {Record<string, string|number|boolean|null|undefined>[]} rows

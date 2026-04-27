@@ -59,16 +59,14 @@ const Login = () => {
     <div className="flex min-h-screen bg-white font-sans">
       <div className="relative hidden w-3/5 flex-col justify-end overflow-hidden bg-brand p-16 lg:flex">
         <div className="absolute inset-0 z-10 bg-gradient-to-t from-brand-darker to-transparent" />
-        <img
-          src="https://images.unsplash.com/photo-1531123897727-8f129e16fd3c?auto=format&fit=crop&w=1000"
-          className="absolute inset-0 h-full w-full object-cover opacity-60"
-          alt=""
-        />
+      <img
+  src="/syada-team.png"
+  className="absolute inset-0 h-full w-full "
+  alt="SYADA Team"
+/>
 
         <div className="relative z-20 max-w-xl">
-          <h1 className="mb-6 text-5xl font-black leading-tight text-white lg:text-6xl">
-            SYADA <br /> Sign in
-          </h1>
+        
           <p className="mb-10 text-lg leading-relaxed text-green-50/80">
             Staff use the admin dashboard; members use the member area. Same login page for both.
           </p>
@@ -83,7 +81,7 @@ const Login = () => {
         <div className="w-full max-w-md">
           <div className="mb-10">
             <div className="mb-8 flex h-12 w-12 items-center justify-center rounded-lg bg-orange-50">
-              <span className="text-xl font-black italic text-[#E67E22]">SYADA</span>
+              <span className="text-xl font-black italic text-[#E67E22]">SYADA SIGN IN</span>
             </div>
             <h2 className="mb-2 text-3xl font-black text-gray-900">Welcome back</h2>
             <p className="text-sm font-medium text-gray-400">Use the email and password for your account.</p>

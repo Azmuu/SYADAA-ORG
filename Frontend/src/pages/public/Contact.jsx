@@ -16,9 +16,9 @@ const Contact = () => {
             </p>
 
             <div className="space-y-8">
-              <ContactLink icon={<Mail size={20} />} label="Email" value="SYADAORG2030@gmail.com" />
-              <ContactLink icon={<Phone size={20} />} label="Phone" value="+252 61 9989515" />
-              <ContactLink icon={<MapPin size={20} />} label="Regions" value="Benadir, Mudug, Nugaal, Bari, Lower Jubba" />
+              <ContactLink icon={<Mail size={20} />} label="Email" value="syadaorg2012@gmail.com" />
+              <ContactLink icon={<Phone size={20} />} label="Phone" value="+252 61 4524693" />
+              <ContactLink icon={<MapPin size={20} />} label="Regions" value="Mogdishu Benadir Somalia " />
             </div>
           </div>
 
