@@ -16,8 +16,20 @@ const financialSchema = new mongoose.Schema(
       enum: ["members", "sports"],
       default: "members",
     },
+    auto_generated: { type: Boolean, default: false },
+    source_model: {
+      type: String,
+      enum: ["Member", "SportMember", null],
+      default: null,
+    },
+    source_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      default: null,
+    },
   },
   { timestamps: true }
 );
+
+financialSchema.index({ source_model: 1, source_id: 1 });
 
 export default mongoose.model("Financial", financialSchema);

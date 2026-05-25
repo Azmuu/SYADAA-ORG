@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Match ThemeContext: dark mode only when <html class="dark">, not OS preference */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* SYADA emblem: green band / wreath, navy stars, gold sun — use sitewide */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;

@@ -68,7 +68,7 @@ function App() {
           <Route path="sports/new" element={<SportMemberFormPage />} />
           <Route path="sports/:id/edit" element={<SportMemberFormPage />} />
           <Route path="sports" element={<Sports />} />
-          <Route path="finance" element={<Navigate to="/admin/finance/members" replace />} />
+          <Route path="finance" element={<Navigate to="/admin/finance/all" replace />} />
           <Route path="finance/:section" element={<Finance />} />
           <Route path="reports" element={<Reports />} />
           <Route path="resources" element={<Resources />} />

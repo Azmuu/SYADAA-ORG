@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { ExternalLink, ArrowRight, ArrowUpRight } from 'lucide-react';
 import Footer from '../../components/Footer';
 import About from './About';
+import { useTheme } from '../../context/ThemeContext';
 import activitiesManifest from '../../data/activities-manifest.json';
 import { publicFolderFile } from '../../lib/publicMediaUrl';
 
 const { activities: publicActivities } = activitiesManifest;
 
-/** Home hero uses only `public/vedio/home.mp4` */
-const HERO_VIDEO_SRC = publicFolderFile('vedio', 'home.mp4');
+/** Home hero image (replaces old video background). */
+const HERO_IMAGE_SRC = '/image1.png';
 
 const ActivityImageLoop = ({ activity }) => {
   const urls = useMemo(
@@ -84,6 +85,8 @@ const InsightCard = ({ img, tag, title, desc }) => (
 );
 
 const Home = () => {
+  const { isDark } = useTheme();
+
   useEffect(() => {
     if (window.location.hash === '#activities') {
       requestAnimationFrame(() => {
@@ -117,21 +120,15 @@ const Home = () => {
 
   return (
     <div className="bg-brand-muted font-sans text-neutral-900 antialiased transition-[background-color,color] duration-200 dark:bg-[#0a100e] dark:text-stone-100">
-      {/* Hero — full-width video (no max-width container) */}
+      {/* Hero — full-width image (no max-width container) */}
       <section className="relative w-full">
         <div className="relative h-[min(78vh,640px)] w-full min-h-[280px] bg-black md:h-[min(85vh,720px)]">
-          <video
+          <img
             className="absolute inset-0 h-full w-full object-cover"
-            autoPlay
-            muted
-            loop
-            playsInline
-            controls={false}
-            preload="auto"
-            poster="/image1.png"
-          >
-            <source src={HERO_VIDEO_SRC} type="video/mp4" />
-          </video>
+            src={HERO_IMAGE_SRC}
+            alt="SYADA youth event"
+            loading="eager"
+          />
         </div>
         <div className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-t from-black/75 via-black/35 to-black/20" />
         <div className="absolute inset-0 z-10 flex flex-col justify-end">
@@ -150,38 +147,80 @@ const Home = () => {
       {/* Stats */}
       <section className="mx-auto max-w-6xl px-5 py-10 lg:px-8">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-          <div className="flex flex-col justify-between rounded-3xl border border-brand/10 bg-brand-soft p-8">
+          <div
+            className={`flex flex-col justify-between rounded-3xl border border-brand/10 p-8 ${
+              isDark ? 'bg-brand-soft' : 'bg-[#ffffff] shadow-sm'
+            }`}
+          >
             <div>
               <p className="text-4xl font-semibold tracking-tight text-brand md:text-5xl">191+</p>
               <p className="mt-2 text-sm font-medium text-neutral-500">Xubno & saaxiibo</p>
             </div>
             <div className="mt-8 flex -space-x-2">
-              <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="/asma.jpeg" alt="" />
-              <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="/jamac.jpeg.jpeg" alt="" />
-              <img className="h-10 w-10 rounded-full border-2 border-brand-soft object-cover" src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=100" alt="" />
-              <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-brand-soft bg-white text-[10px] font-semibold text-brand dark:border-brand/30 dark:bg-gray-800">
+              <img
+                className={`h-10 w-10 rounded-full border-2 object-cover ${isDark ? 'border-brand-soft' : 'border-[#ffffff]'}`}
+                src="/asma.jpeg"
+                alt=""
+              />
+              <img
+                className={`h-10 w-10 rounded-full border-2 object-cover ${isDark ? 'border-brand-soft' : 'border-[#ffffff]'}`}
+                src="/jamac.jpeg.jpeg"
+                alt=""
+              />
+              <img
+                className={`h-10 w-10 rounded-full border-2 object-cover ${isDark ? 'border-brand-soft' : 'border-[#ffffff]'}`}
+                src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&w=100"
+                alt=""
+              />
+              <div
+                className={`flex h-10 w-10 items-center justify-center rounded-full border-2 text-[10px] font-semibold text-brand ${
+                  isDark ? 'border-brand/30 bg-gray-800' : 'border-[#ffffff] bg-brand-muted'
+                }`}
+              >
                 +++
               </div>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl">
-            <img
-              src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80"
-              alt=""
-              className="absolute inset-0 h-full w-full object-cover grayscale"
-            />
-            <div className="absolute inset-0 bg-logo-navy/60" />
-            <div className="relative flex h-full min-h-[220px] flex-col justify-end p-8 text-white">
-              <p className="text-4xl font-semibold md:text-5xl">5+</p>
-              <p className="mt-2 text-sm font-medium text-white/80">Gobol oo aan ka shaqeyno</p>
+          <div
+            className={`relative overflow-hidden rounded-3xl border border-brand/10 ${
+              isDark ? '' : 'bg-[#ffffff] shadow-sm'
+            }`}
+          >
+            {isDark && (
+              <>
+                <img
+                  src="https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=900&q=80"
+                  alt=""
+                  className="absolute inset-0 h-full w-full object-cover grayscale"
+                />
+                <div className="absolute inset-0 bg-logo-navy/60" />
+              </>
+            )}
+            <div className="relative flex h-full min-h-[220px] flex-col justify-end p-8">
+              <p className={`text-4xl font-semibold md:text-5xl ${isDark ? 'text-white' : 'text-brand'}`}>5+</p>
+              <p className={`mt-2 text-sm font-medium ${isDark ? 'text-white/80' : 'text-neutral-500'}`}>
+                Gobol oo aan ka shaqeyno
+              </p>
             </div>
           </div>
 
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-logo-navy to-logo-navy-dark p-8 text-white">
-            <p className="relative z-10 text-4xl font-semibold md:text-5xl">15+</p>
-            <p className="relative z-10 mt-2 text-sm font-medium text-white/75">Sano oo adeeg</p>
-            <span className="pointer-events-none absolute -bottom-4 -right-2 select-none text-7xl font-semibold tracking-tighter text-white/[0.08]">
+          <div
+            className={`relative overflow-hidden rounded-3xl border border-brand/10 p-8 ${
+              isDark
+                ? 'bg-gradient-to-br from-logo-navy to-logo-navy-dark text-white'
+                : 'bg-[#ffffff] text-neutral-900 shadow-sm'
+            }`}
+          >
+            <p className={`relative z-10 text-4xl font-semibold md:text-5xl ${isDark ? 'text-white' : 'text-brand'}`}>15+</p>
+            <p className={`relative z-10 mt-2 text-sm font-medium ${isDark ? 'text-white/75' : 'text-neutral-500'}`}>
+              Sano oo adeeg
+            </p>
+            <span
+              className={`pointer-events-none absolute -bottom-4 -right-2 select-none text-7xl font-semibold tracking-tighter ${
+                isDark ? 'text-white/[0.08]' : 'text-brand/[0.08]'
+              }`}
+            >
               SYADA
             </span>
           </div>

@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Member from "../models/Member.js";
+import Financial from "../models/Financial.js";
 import User from "../models/User.js";
 import { provisionMemberPortalUser } from "../services/memberPortalAccount.js";
 import { sendMemberCredentialsEmail, isMailConfigured } from "../services/mailService.js";
@@ -123,6 +124,38 @@ function formatMongooseError(e) {
   return e.message || "Could not save member.";
 }
 
+async function syncMemberPaymentRevenue(member) {
+  const source = { source_model: "Member", source_id: member._id };
+
+  if (!member.is_finance_member || member.finance_payment_status !== "paid") {
+    await Financial.deleteMany(source);
+    return;
+  }
+
+  const amount = Number(member.finance_monthly_fee);
+  const sector = member.finance_section === "sports" ? "sports" : "members";
+
+  await Financial.findOneAndUpdate(
+    source,
+    {
+      $set: {
+        entity_name: member.name ? `Member payment - ${member.name}` : "Member payment",
+        category: "Member payment",
+        amount: Number.isFinite(amount) && amount > 0 ? amount : 0,
+        type: "income",
+        sector,
+        auto_generated: true,
+      },
+      $setOnInsert: {
+        date: new Date(),
+        source_model: "Member",
+        source_id: member._id,
+      },
+    },
+    { upsert: true, new: true, setDefaultsOnInsert: true }
+  );
+}
+
 export const getMembers = async (req, res) => {
   try {
     const data = await Member.find().sort({ createdAt: -1 });
@@ -192,6 +225,8 @@ export const createMember = async (req, res) => {
       emailSent,
       mailError,
     });
+
+    await syncMemberPaymentRevenue(savedMember);
 
     const obj = savedMember.toObject();
     res.status(201).json({
@@ -337,6 +372,7 @@ export const updateMember = async (req, res) => {
       runValidators: true,
     });
     if (!data) return res.status(404).json({ message: "Member not found" });
+    await syncMemberPaymentRevenue(data);
     res.json(data);
   } catch (e) {
     res.status(400).json({ message: formatMongooseError(e) });
@@ -351,6 +387,7 @@ export const deleteMember = async (req, res) => {
     if (!doc) return res.status(404).json({ message: "Member not found" });
     const email = doc.email?.trim().toLowerCase();
     await Member.findByIdAndDelete(id);
+    await Financial.deleteMany({ source_model: "Member", source_id: doc._id });
     if (email) {
       await User.deleteOne({ email, role: "member" });
     }

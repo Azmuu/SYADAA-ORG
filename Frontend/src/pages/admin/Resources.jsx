@@ -6,7 +6,7 @@ const cards = [
   {
     title: "Financials",
     description: "Income, expenses, and ledger entries from your database.",
-    to: "/admin/finance/members",
+    to: "/admin/finance/all",
     icon: Wallet,
   },
   {
@@ -55,11 +55,12 @@ const Resources = () => (
     </header>
 
     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {cards.map(({ title, description, to, icon: Icon, external }) =>
-        external ? (
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return card.external ? (
           <a
-            key={title}
-            href={to}
+            key={card.title}
+            href={card.to}
             target="_blank"
             rel="noreferrer"
             className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-brand/30 hover:shadow-md"
@@ -67,25 +68,25 @@ const Resources = () => (
             <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gray-50 text-brand group-hover:bg-brand-soft">
               <Icon size={22} />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-            <p className="mt-2 flex-1 text-sm text-gray-500">{description}</p>
+            <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
+            <p className="mt-2 flex-1 text-sm text-gray-500">{card.description}</p>
             <span className="mt-4 text-xs font-bold text-brand">Open ↗</span>
           </a>
         ) : (
           <Link
-            key={title}
-            to={to}
+            key={card.title}
+            to={card.to}
             className="group flex flex-col rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition hover:border-brand/30 hover:shadow-md"
           >
             <div className="mb-4 flex size-11 items-center justify-center rounded-xl bg-gray-50 text-brand group-hover:bg-brand-soft">
               <Icon size={22} />
             </div>
-            <h2 className="text-lg font-bold text-gray-900">{title}</h2>
-            <p className="mt-2 flex-1 text-sm text-gray-500">{description}</p>
+            <h2 className="text-lg font-bold text-gray-900">{card.title}</h2>
+            <p className="mt-2 flex-1 text-sm text-gray-500">{card.description}</p>
             <span className="mt-4 text-xs font-bold text-brand">Go →</span>
           </Link>
-        )
-      )}
+        );
+      })}
     </div>
   </div>
 );

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, useParams, Navigate, Link } from "react-router-dom";
 import {
   Download,
@@ -9,6 +9,7 @@ import {
   TrendingDown,
   TrendingUp,
   Users,
+  Wallet,
   Dumbbell,
   Pencil,
   ExternalLink,
@@ -28,7 +29,7 @@ const payClass = (s) =>
 const Finance = () => {
   const { section } = useParams();
   const { isDark } = useTheme();
-  const sector = section === "sports" ? "sports" : "members";
+  const sector = section === "members" || section === "sports" ? section : "all";
 
   const [overview, setOverview] = useState(null);
   const [tx, setTx] = useState([]);
@@ -38,6 +39,13 @@ const Finance = () => {
   const [saving, setSaving] = useState(false);
   const [sportRows, setSportRows] = useState([]);
   const [payUpdatingId, setPayUpdatingId] = useState(null);
+  const [sportsExpenseSaving, setSportsExpenseSaving] = useState(false);
+  const [sportsExpenseForm, setSportsExpenseForm] = useState({
+    teamName: "",
+    category: "Sports expense",
+    amount: "",
+    date: new Date().toISOString().slice(0, 10),
+  });
   const [txForm, setTxForm] = useState({
     entity_name: "",
     category: "General",
@@ -60,8 +68,13 @@ const Finance = () => {
         setOverview(ov);
         setTx(Array.isArray(list) ? list : []);
         setSportRows(Array.isArray(sm) ? sm : []);
-      } else {
+      } else if (sector === "members") {
         const [ov, list] = await Promise.all([financeApi.getOverview("members"), financeApi.getTransactions(40, "members")]);
+        setOverview(ov);
+        setTx(Array.isArray(list) ? list : []);
+        setSportRows([]);
+      } else {
+        const [ov, list] = await Promise.all([financeApi.getOverview("all"), financeApi.getTransactions(40, "all")]);
         setOverview(ov);
         setTx(Array.isArray(list) ? list : []);
         setSportRows([]);
@@ -82,7 +95,7 @@ const Finance = () => {
 
   useEffect(() => {
     if (modal) {
-      setTxForm((f) => ({ ...f, sector }));
+      setTxForm((f) => ({ ...f, sector: sector === "all" ? "members" : sector }));
     }
   }, [modal, sector]);
 
@@ -128,6 +141,67 @@ const Finance = () => {
     );
   };
 
+  const sportsExpenseRows = useMemo(
+    () => (sector === "sports" ? tx.filter((row) => row.type === "expense") : []),
+    [sector, tx]
+  );
+
+  const sportsTeamTotals = useMemo(() => {
+    const grouped = new Map();
+    for (const row of sportsExpenseRows) {
+      const teamName = (row.entity_name || "Unknown team").trim() || "Unknown team";
+      const current = grouped.get(teamName) || {
+        teamName,
+        total: 0,
+        count: 0,
+        latestDate: null,
+      };
+      const rowDate = row.date ? new Date(row.date) : null;
+      grouped.set(teamName, {
+        ...current,
+        total: current.total + (Number(row.amount) || 0),
+        count: current.count + 1,
+        latestDate:
+          rowDate && !Number.isNaN(rowDate.getTime()) && (!current.latestDate || rowDate > current.latestDate)
+            ? rowDate
+            : current.latestDate,
+      });
+    }
+    return Array.from(grouped.values()).sort((a, b) => b.total - a.total);
+  }, [sportsExpenseRows]);
+
+  const registerSportsExpense = async (e) => {
+    e.preventDefault();
+    const teamName = sportsExpenseForm.teamName.trim();
+    const amount = Number(sportsExpenseForm.amount);
+    if (!teamName) {
+      alert("Team name is required.");
+      return;
+    }
+    if (!Number.isFinite(amount) || amount <= 0) {
+      alert("Amount must be greater than 0.");
+      return;
+    }
+
+    setSportsExpenseSaving(true);
+    try {
+      await financeApi.createTransaction({
+        entity_name: teamName,
+        category: sportsExpenseForm.category.trim() || "Sports expense",
+        amount,
+        type: "expense",
+        date: sportsExpenseForm.date ? new Date(sportsExpenseForm.date).toISOString() : undefined,
+        sector: "sports",
+      });
+      setSportsExpenseForm((f) => ({ ...f, amount: "" }));
+      await load();
+    } catch (err) {
+      alert(err.message || "Could not register sports expense");
+    } finally {
+      setSportsExpenseSaving(false);
+    }
+  };
+
   const totalFlow = (overview?.income || 0) + (overview?.expense || 0);
   const tabBase = isDark
     ? "text-gray-400 hover:text-gray-200"
@@ -144,17 +218,17 @@ const Finance = () => {
     ? "w-full rounded-lg border border-gray-600 bg-gray-800 px-3 py-2 text-sm text-gray-100 outline-none focus:ring-2 focus:ring-[#1a5336]"
     : "w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#1a5336]";
 
-  if (section && section !== "members" && section !== "sports") {
-    return <Navigate to="/admin/finance/members" replace />;
+  if (section && section !== "all" && section !== "members" && section !== "sports") {
+    return <Navigate to="/admin/finance/all" replace />;
   }
 
   return (
     <div className={`min-h-screen p-4 sm:p-6 ${pageBg}`}>
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className={`text-2xl font-bold ${textMain}`}>Finance &amp; analytics</h1>
+          <h1 className={`text-2xl font-bold ${textMain}`}>Revenue &amp; expenses</h1>
           <p className={`mt-1 text-sm ${textSub}`}>
-            Sub-ledgers for <strong className="font-semibold">members</strong> vs <strong className="font-semibold">sports</strong> programs.
+            Track money coming in and going out for <strong className="font-semibold">members</strong> and <strong className="font-semibold">sports</strong> programs.
             Data from <code className="rounded bg-black/20 px-1 text-xs">/api/finance</code> with <code className="rounded bg-black/20 px-1 text-xs">sector</code> filter.
           </p>
         </div>
@@ -180,28 +254,41 @@ const Finance = () => {
             <FileSpreadsheet size={16} />
             Export transactions
           </button>
-          <button
-            type="button"
-            onClick={() => {
-              setTxForm({
-                entity_name: "",
-                category: "General",
-                amount: "",
-                type: "income",
-                date: new Date().toISOString().slice(0, 10),
-                sector,
-              });
-              setModal(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
-          >
-            <Plus size={18} />
-            Add transaction
-          </button>
+          {sector !== "sports" && (
+            <button
+              type="button"
+              onClick={() => {
+                setTxForm({
+                  entity_name: "",
+                  category: "General",
+                  amount: "",
+                  type: "income",
+                  date: new Date().toISOString().slice(0, 10),
+                  sector: sector === "all" ? "members" : sector,
+                });
+                setModal(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-md bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:opacity-95"
+            >
+              <Plus size={18} />
+              Add revenue / expense
+            </button>
+          )}
         </div>
       </div>
 
       <div className={`mb-6 flex flex-wrap gap-2 rounded-xl p-1 ${isDark ? "bg-gray-900" : "bg-gray-200/50"}`}>
+        <NavLink
+          to="/admin/finance/all"
+          className={({ isActive }) =>
+            `inline-flex flex-1 min-w-[140px] items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-bold transition-colors ${
+              isActive ? tabActive : `${tabBase} ${tabInactive}`
+            }`
+          }
+        >
+          <Wallet size={16} />
+          All revenue & expenses
+        </NavLink>
         <NavLink
           to="/admin/finance/members"
           className={({ isActive }) =>
@@ -211,7 +298,7 @@ const Finance = () => {
           }
         >
           <Users size={16} />
-          Members finance
+          Members revenue & expenses
         </NavLink>
         <NavLink
           to="/admin/finance/sports"
@@ -222,9 +309,112 @@ const Finance = () => {
           }
         >
           <Dumbbell size={16} />
-          Sports finance
+          Sports revenue & expenses
         </NavLink>
       </div>
+
+      {sector === "sports" && (
+        <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <form className={`rounded-xl p-6 shadow-sm lg:col-span-2 ${card}`} onSubmit={registerSportsExpense}>
+            <div className="mb-5">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-green-600">Sports expense register</p>
+              <h2 className={`mt-1 text-lg font-bold ${textMain}`}>Register money spent for a team</h2>
+              <p className={`mt-1 text-sm ${textSub}`}>
+                Add the team name and amount here. When you save it, the money is counted automatically as a sports expense.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <label className={`mb-1 block text-xs font-semibold ${textSub}`}>Team name</label>
+                <input
+                  required
+                  value={sportsExpenseForm.teamName}
+                  onChange={(e) => setSportsExpenseForm((f) => ({ ...f, teamName: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. SYADA Football Team"
+                />
+              </div>
+              <div>
+                <label className={`mb-1 block text-xs font-semibold ${textSub}`}>Expense title</label>
+                <input
+                  value={sportsExpenseForm.category}
+                  onChange={(e) => setSportsExpenseForm((f) => ({ ...f, category: e.target.value }))}
+                  className={inputCls}
+                  placeholder="e.g. Uniforms, transport, equipment"
+                />
+              </div>
+              <div>
+                <label className={`mb-1 block text-xs font-semibold ${textSub}`}>Amount (USD)</label>
+                <input
+                  required
+                  min="0.01"
+                  step="0.01"
+                  type="number"
+                  value={sportsExpenseForm.amount}
+                  onChange={(e) => setSportsExpenseForm((f) => ({ ...f, amount: e.target.value }))}
+                  className={inputCls}
+                  placeholder="0.00"
+                />
+              </div>
+              <div>
+                <label className={`mb-1 block text-xs font-semibold ${textSub}`}>Paid date</label>
+                <input
+                  type="date"
+                  value={sportsExpenseForm.date}
+                  onChange={(e) => setSportsExpenseForm((f) => ({ ...f, date: e.target.value }))}
+                  className={inputCls}
+                />
+              </div>
+            </div>
+            <div className="mt-5 flex justify-end">
+              <button
+                type="submit"
+                disabled={sportsExpenseSaving}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#1a5336] px-4 py-2 text-sm font-semibold text-white hover:opacity-95 disabled:opacity-60"
+              >
+                {sportsExpenseSaving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
+                {sportsExpenseSaving ? "Registering..." : "Register expense"}
+              </button>
+            </div>
+          </form>
+
+          <div className={`rounded-xl p-6 shadow-sm ${card}`}>
+            <div className="mb-4">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-green-600">Teams</p>
+              <h3 className={`text-lg font-bold ${textMain}`}>Team expenses</h3>
+              <p className={`mt-1 text-xs ${textSub}`}>{sportsTeamTotals.length} teams with registered expenses</p>
+            </div>
+            {loading && (
+              <div className={`flex items-center gap-2 py-6 text-sm ${textSub}`}>
+                <Loader2 className="size-4 animate-spin" /> Loading teams...
+              </div>
+            )}
+            {!loading && sportsTeamTotals.length === 0 && (
+              <p className={`py-4 text-sm ${textSub}`}>No team expenses yet. Register the first expense on the form.</p>
+            )}
+            <div className="space-y-3">
+              {!loading &&
+                sportsTeamTotals.map((team) => (
+                  <div
+                    key={team.teamName}
+                    className={`rounded-lg border p-3 ${isDark ? "border-gray-800 bg-gray-950/50" : "border-gray-100 bg-gray-50"}`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h4 className={`text-sm font-bold ${textMain}`}>{team.teamName}</h4>
+                        <p className={`text-[10px] ${textSub}`}>
+                          {team.count} expense{team.count === 1 ? "" : "s"}
+                          {team.latestDate ? ` · latest ${team.latestDate.toLocaleDateString()}` : ""}
+                        </p>
+                      </div>
+                      <span className="text-sm font-bold text-red-600">{fmt(team.total)}</span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {sector === "sports" && (
         <div className={`mb-6 rounded-xl p-6 shadow-sm ${card}`}>
@@ -235,7 +425,7 @@ const Finance = () => {
               <p className={`mt-1 max-w-2xl text-sm ${textSub}`}>
                 All sports roster members are listed here. Mark each as <strong className="text-inherit">Paid</strong>,{" "}
                 <strong className="text-inherit">Partial</strong>, or <strong className="text-inherit">Not paid</strong>. Use{" "}
-                <strong className="text-inherit">Add transaction</strong> to record money in the sports ledger.
+                <strong className="text-inherit">Add revenue / expense</strong> to record money in the sports ledger.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -370,9 +560,9 @@ const Finance = () => {
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-green-600">
-                  {sector === "sports" ? "Sports" : "Members"} · Overview
+                  {sector === "sports" ? "Sports" : sector === "members" ? "Members" : "All finance"} · Overview
                 </p>
-                <h2 className={`mt-1 text-xl font-bold ${textMain}`}>Income vs expense (this sub-ledger)</h2>
+                <h2 className={`mt-1 text-xl font-bold ${textMain}`}>Revenue vs expense (this sub-ledger)</h2>
               </div>
               <div className="text-right">
                 <p className={`text-2xl font-bold ${textMain}`}>{loading ? "…" : fmt(totalFlow)}</p>
@@ -380,7 +570,7 @@ const Finance = () => {
               </div>
             </div>
             <div className={`flex h-48 items-end justify-around gap-3 rounded-lg p-4 ${isDark ? "bg-gray-800/50" : "bg-gray-50"}`}>
-              <Bar label="Income" value={overview?.income || 0} max={Math.max(totalFlow, 1)} color="bg-emerald-500" />
+              <Bar label="Revenue" value={overview?.income || 0} max={Math.max(totalFlow, 1)} color="bg-emerald-500" />
               <Bar label="Expense" value={overview?.expense || 0} max={Math.max(totalFlow, 1)} color="bg-[#1a5336]" />
             </div>
           </div>
@@ -410,7 +600,7 @@ const Finance = () => {
             )}
             {!loading && tx.length === 0 && (
               <p className={`py-6 text-sm ${textSub}`}>
-                No transactions in this sub-ledger yet. Use <strong className="font-semibold">Add transaction</strong> to
+                No transactions in this sub-ledger yet. Use <strong className="font-semibold">Add revenue / expense</strong> to
                 record entries.
               </p>
             )}
@@ -421,7 +611,7 @@ const Finance = () => {
                     <div>
                       <h4 className={`text-sm font-bold ${textMain}`}>{row.entity_name || "Entry"}</h4>
                       <p className={`text-[10px] ${textSub}`}>
-                        {row.category} · {row.type}
+                        {row.category} · {row.type === "income" ? "revenue" : row.type}
                         {row.sector ? ` · ${row.sector}` : ""}
                         {row.date ? ` · ${new Date(row.date).toLocaleDateString()}` : ""}
                       </p>
@@ -442,7 +632,7 @@ const Finance = () => {
           <div className="relative overflow-hidden rounded-xl bg-[#1a5336] p-6 text-white">
             <p className="flex items-center gap-2 text-sm opacity-80">Net balance</p>
             <h2 className="mt-2 text-3xl font-bold">{loading ? "…" : fmt(overview?.balance ?? 0)}</h2>
-            <p className="mt-3 text-xs opacity-75">Income minus expense in this sub-ledger.</p>
+            <p className="mt-3 text-xs opacity-75">Revenue minus expense in this sub-ledger.</p>
             <div className="mt-4 inline-flex items-center gap-1 rounded bg-white/10 px-2 py-1 text-[10px]">
               {overview && overview.balance >= 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
               {overview ? `${tx.length} transactions` : ""}
@@ -453,7 +643,7 @@ const Finance = () => {
             <h3 className={`mb-4 font-bold ${textMain}`}>Totals</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between">
-                <span className={textSub}>Income</span>
+                <span className={textSub}>Revenue</span>
                 <span className="font-bold text-emerald-600">{loading ? "…" : fmt(overview?.income)}</span>
               </div>
               <div className="flex justify-between">
@@ -490,7 +680,7 @@ const Finance = () => {
       {modal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog">
           <div className={`w-full max-w-md rounded-2xl p-6 shadow-xl ${isDark ? "bg-gray-900 text-gray-100" : "bg-white"}`}>
-            <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Add transaction</h3>
+            <h3 className={`text-lg font-bold ${isDark ? "text-white" : "text-gray-900"}`}>Add revenue / expense</h3>
             <p className={`mt-1 text-xs ${textSub}`}>POST /api/finance/transactions (sector: members | sports)</p>
             <form
               className="mt-4 space-y-4"
@@ -522,7 +712,7 @@ const Finance = () => {
                   value={txForm.entity_name}
                   onChange={(e) => setTxForm((f) => ({ ...f, entity_name: e.target.value }))}
                   className={inputCls}
-                  placeholder="e.g. Membership dues — March"
+                  placeholder="e.g. Membership dues - March"
                 />
               </div>
               <div>
@@ -552,7 +742,7 @@ const Finance = () => {
                     onChange={(e) => setTxForm((f) => ({ ...f, type: e.target.value }))}
                     className={inputCls}
                   >
-                    <option value="income">Income</option>
+                    <option value="income">Revenue</option>
                     <option value="expense">Expense</option>
                   </select>
                 </div>

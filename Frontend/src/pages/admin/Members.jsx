@@ -41,7 +41,7 @@ const Members = ({ list = "all" }) => {
 
   useEffect(() => {
     if (detailMember) setPhotoZoomIdx(0);
-  }, [detailMember?._id]);
+  }, [detailMember]);
 
   useEffect(() => {
     setPortalCredResult(null);
@@ -229,6 +229,7 @@ const Members = ({ list = "all" }) => {
               <p className="mt-2 max-w-xl text-sm text-gray-500">
                 Only members who have finance enabled. Set each row to <strong className="font-medium text-gray-700">Paid</strong>,{" "}
                 <strong className="font-medium text-gray-700">Partial</strong>, or <strong className="font-medium text-gray-700">Not paid</strong>.
+                Paid members are added to revenue automatically.
               </p>
             </>
           ) : (
@@ -251,6 +252,15 @@ const Members = ({ list = "all" }) => {
             <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
             Refresh
           </button>
+          {financeOnly && (
+            <Link
+              to="/admin/finance/all"
+              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50"
+            >
+              <Wallet size={16} />
+              Revenue & expenses
+            </Link>
+          )}
           <Link
             to="/admin/members/new"
             className="inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-brand-dark"

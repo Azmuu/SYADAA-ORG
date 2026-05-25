@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -39,18 +39,6 @@ const Sidebar = ({ mobileOpen = false, onClose = () => {} }) => {
   const [membersOpen, setMembersOpen] = useState(shouldOpenMembers);
   const [financeOpen, setFinanceOpen] = useState(shouldOpenFinance);
   const [sportsOpen, setSportsOpen] = useState(shouldOpenSports);
-
-  useEffect(() => {
-    if (shouldOpenMembers) setMembersOpen(true);
-  }, [shouldOpenMembers]);
-
-  useEffect(() => {
-    if (shouldOpenFinance) setFinanceOpen(true);
-  }, [shouldOpenFinance]);
-
-  useEffect(() => {
-    if (shouldOpenSports) setSportsOpen(true);
-  }, [shouldOpenSports]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -169,6 +157,13 @@ const Sidebar = ({ mobileOpen = false, onClose = () => {} }) => {
               </button>
               {financeOpen && (
                 <div className={`ml-2 space-y-0.5 border-l-2 py-1 pl-3 ${isDark ? 'border-gray-700' : 'border-brand/25'}`}>
+                  <NavLink
+                    to="/admin/finance/all"
+                    onClick={onClose}
+                    className={({ isActive }) => subLinkClass(isDark, isActive)}
+                  >
+                    Revenue & expenses
+                  </NavLink>
                   <NavLink
                     to="/admin/finance/sports"
                     onClick={onClose}
